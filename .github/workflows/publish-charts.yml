@@ -38,8 +38,8 @@ jobs:
 
       - name: Chart index
         run: |
-          curl -sSL -o release/old-index.yaml "https://devopsgenie-ai.github.io/devopsgenie-charts/index.yaml" || true
-          if [ -s release/old-index.yaml ]; then
+          curl -sfSL -o release/old-index.yaml "https://devopsgenie-ai.github.io/devopsgenie-charts/index.yaml" || rm -f release/old-index.yaml
+          if [ -s release/old-index.yaml ] && grep -q '^entries:' release/old-index.yaml; then
             helm repo index release --merge release/old-index.yaml --url https://devopsgenie-ai.github.io/devopsgenie-charts
           else
             helm repo index release --url https://devopsgenie-ai.github.io/devopsgenie-charts
