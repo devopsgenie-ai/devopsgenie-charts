@@ -79,6 +79,7 @@ If the image is public, you can omit `pullSecrets`.
 | `dockerSocket.enabled` | Mount host Docker socket (for Docker-based MCP) | `false` |
 | `service.type` | Service type | `ClusterIP` |
 | `service.port` | Service port | `8000` |
+| `podSecurityContext` | Pod-level: `runAsNonRoot: true`, `runAsUser: 1000`, `fsGroup: 1000` (matches image `claude_user` UID; do not change unless image is rebuilt with another UID) | see values.yaml |
 | `rbac.create` | Create ClusterRole + ClusterRoleBinding (read-only cluster access for agent) | `false` |
 | `rbac.extraRules` | Extra ClusterRole rules (list) | `[]` |
 | `ingress.enabled` | Enable Ingress | `false` |
