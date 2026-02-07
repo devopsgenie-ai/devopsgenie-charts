@@ -82,6 +82,9 @@ If the image is public, you can omit `pullSecrets`.
 | `rbac.create` | Create ClusterRole + ClusterRoleBinding (read-only cluster access for agent) | `false` |
 | `rbac.extraRules` | Extra ClusterRole rules (list) | `[]` |
 | `ingress.enabled` | Enable Ingress | `false` |
+| `ingress.className` | Ingress class (e.g. nginx) | `""` |
+| `ingress.annotations` | Annotations (auth, proxy, CORS, rate limit, external-dns, etc.) | `{}` |
+| `ingress.hosts` / `tls` | Host and path rules, TLS | see values.yaml |
 | `resources` | CPU/memory limits and requests | see values.yaml |
 
 ## Required configuration

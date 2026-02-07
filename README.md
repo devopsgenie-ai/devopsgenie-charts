@@ -47,7 +47,8 @@ Create a namespace and a secret with required keys, then install. For private im
 | `service.port` | Service port | `8000` |
 | **Ingress** | | |
 | `ingress.enabled` | Enable Ingress | `false` |
-| `ingress.className` | Ingress class | `""` |
+| `ingress.className` | Ingress class (e.g. nginx) | `""` |
+| `ingress.annotations` | Annotations (auth, proxy, CORS, rate limit, external-dns, etc.) | `{}` |
 | `ingress.hosts` | Host and path rules | see values.yaml |
 | `ingress.tls` | TLS configuration | `[]` |
 | **Environment & secrets** | | |

@@ -40,7 +40,7 @@ service:
 ingress:
   enabled: false
   className: ""
-  annotations: {}
+  annotations: {}     # e.g. nginx auth, proxy size/timeouts, CORS, rate limit, external-dns
   hosts:
     - host: devops-genie.local
       paths:
