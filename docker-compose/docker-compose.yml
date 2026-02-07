@@ -1,0 +1,22 @@
+# DevOps Genie - Docker Compose for EC2 or any Docker host
+# Copy .env.example to .env and set your API keys before running.
+
+version: '3'
+services:
+  devops-genie:
+    image: ghcr.io/devopsgenie-ai/devops-genie:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Optional: persist .claude config
+      # - devops-genie-claude:/home/claude_user/.claude
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+      - CLAUDE_CWD=/app
+    restart: unless-stopped
+
+# volumes:
+#   devops-genie-claude:

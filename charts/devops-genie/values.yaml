@@ -1,0 +1,79 @@
+# Default values for devops-genie.
+# See charts/devops-genie/README.md for full documentation.
+
+image:
+  repository: ghcr.io/devopsgenie-ai/devops-genie
+  tag: ""  # defaults to Chart appVersion
+  pullPolicy: IfNotPresent
+  pullSecrets: []  # e.g. [ghcr] for GHCR
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: devops-genie.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Required: set via values or existing secret
+# Clients should use --set or -f my-values.yaml; do not commit secrets.
+env: {}
+#  ANTHROPIC_API_KEY: "<from-secret>"
+#  GITHUB_PERSONAL_ACCESS_TOKEN: "<from-secret>"
+#  INFRA_REPOSITORY: "owner/repo"
+#  INFRA_FOLDER: "path/to/infra/"
+
+# Use existing secret for sensitive env vars (recommended)
+existingSecret: ""
+# existingSecretKeys: {}  # map env name -> secret key
+
+# Mount Docker socket for MCP (e.g. GitHub). Requires Docker/containerd on node.
+dockerSocket:
+  enabled: false
+  hostPath: /var/run/docker.sock
+
+# Persistence for .claude (optional)
+persistence:
+  enabled: false
+  size: 1Gi
+  storageClass: ""
+
+replicaCount: 1

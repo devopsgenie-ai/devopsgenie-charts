@@ -1,0 +1,11 @@
+# Helm
+*.tgz
+charts/*/charts/
+
+# Local
+.env
+*.local
+
+# OS
+.DS_Store
+Thumbs.db

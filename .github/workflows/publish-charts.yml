@@ -1,0 +1,84 @@
+# Build Helm package and publish chart index to GitHub Pages (Helm repo).
+# Run on release or push to main; adjust as needed.
+name: Publish Helm charts
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.14.0"
+
+      - name: Package chart
+        run: |
+          helm package charts/devops-genie
+          mkdir -p release
+          mv devops-genie-*.tgz release/
+
+      - name: Chart index
+        run: |
+          curl -sSL -o release/old-index.yaml "https://devopsgenie-ai.github.io/devopsgenie-charts/index.yaml" || true
+          if [ -s release/old-index.yaml ]; then
+            helm repo index release --merge release/old-index.yaml --url https://devopsgenie-ai.github.io/devopsgenie-charts
+          else
+            helm repo index release --url https://devopsgenie-ai.github.io/devopsgenie-charts
+          fi
+          rm -f release/old-index.yaml
+
+      - name: Add docs for Pages
+        run: |
+          mkdir -p release/docs
+          cp docs/*.md release/docs/
+          cat > release/docs/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html><head><meta charset="utf-8"><title>DevOps Genie Docs</title></head>
+          <body>
+            <h1>DevOps Genie – Documentation</h1>
+            <ul>
+              <li><a href="https://github.com/devopsgenie-ai/devopsgenie-charts/blob/main/docs/installation.md">Installation</a></li>
+              <li><a href="https://github.com/devopsgenie-ai/devopsgenie-charts/blob/main/docs/configuration.md">Configuration</a></li>
+            </ul>
+            <p>Helm repo: <code>helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts/</code></p>
+          </body></html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: release
+
+  deploy-pages:
+    if: success()
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
