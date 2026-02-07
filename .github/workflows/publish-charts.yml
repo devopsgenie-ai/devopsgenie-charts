@@ -46,18 +46,6 @@ jobs:
           fi
           rm -f release/old-index.yaml
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-          working-directory: docs
-
-      - name: Build docs with Jekyll
-        run: |
-          cd docs
-          bundle exec jekyll build -d ../release/docs
-
       - name: Add root landing page
         run: |
           cat << 'HTMLEOF' | sed 's/^            //' > release/index.html
@@ -66,13 +54,11 @@ jobs:
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>DevOps Genie – Charts &amp; Docs</title>
+            <title>DevOps Genie – Helm Charts</title>
           </head>
           <body style="font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; line-height: 1.6;">
             <h1>DevOps Genie</h1>
-            <p>Helm charts and documentation for <a href="https://github.com/devopsgenie-ai">devopsgenie-ai</a>.</p>
-            <h2>Documentation</h2>
-            <p><a href="docs/">View the docs</a> (installation, configuration).</p>
+            <p>Helm charts for <a href="https://github.com/devopsgenie-ai">devopsgenie-ai</a>. Documentation at <a href="https://docs.devopsgenie.ai">docs.devopsgenie.ai</a>.</p>
             <h2>Helm repo</h2>
             <pre style="background: #f4f4f4; padding: 1rem; overflow-x: auto;"><code>helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts/
             helm repo update

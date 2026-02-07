@@ -2,13 +2,6 @@
 *.tgz
 charts/*/charts/
 
-# Jekyll
-docs/_site
-docs/.sass-cache
-docs/.jekyll-cache
-docs/.bundle
-docs/vendor
-
 # Local
 .env
 *.local

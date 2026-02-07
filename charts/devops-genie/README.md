@@ -50,7 +50,8 @@ kubectl create secret docker-registry ghcr -n devops-genie \
 | `image.pullSecrets` | Pull secrets for private registry | `[]` |
 | `env` | Env vars (non-sensitive) | `{}` |
 | `existingSecret` | Secret name for envFrom (recommended for secrets) | `""` |
-| `dockerSocket.enabled` | Mount host Docker socket (for MCP) | `false` |
+| `mcp.github.useBinary` | Use in-image GitHub MCP binary (no Docker socket) | `false` |
+| `dockerSocket.enabled` | Mount host Docker socket (for Docker-based MCP) | `false` |
 | `service.type` | Service type | `ClusterIP` |
 | `service.port` | Service port | `8000` |
 | `ingress.enabled` | Enable Ingress | `false` |
@@ -64,9 +65,20 @@ kubectl create secret docker-registry ghcr -n devops-genie \
 
 Use a Kubernetes Secret for sensitive values and reference it with `existingSecret`. Do not put secrets in `values.yaml` or `--set` in plain text.
 
-## Docker socket (optional)
+## GitHub MCP: binary vs Docker socket
 
-To use MCP features that need Docker (e.g. GitHub MCP server), enable the host Docker socket:
+**Option A – No Docker socket (recommended for locked-down clusters)**  
+Use the in-image GitHub MCP binary. Set `mcp.github.useBinary: true` and provide `GITHUB_PERSONAL_ACCESS_TOKEN` via `existingSecret`:
+
+```yaml
+mcp:
+  github:
+    useBinary: true
+existingSecret: devops-genie-secret  # must contain GITHUB_PERSONAL_ACCESS_TOKEN
+```
+
+**Option B – Docker socket**  
+To run GitHub MCP via Docker (sibling containers on the node), mount the host Docker socket:
 
 ```yaml
 dockerSocket:
@@ -74,7 +86,7 @@ dockerSocket:
   hostPath: /var/run/docker.sock
 ```
 
-Ensure nodes have Docker or containerd socket at that path. This has security implications; use only in trusted clusters.
+Ensure nodes have Docker or containerd at that path. This has security implications; use only in trusted clusters. Do not set `mcp.github.useBinary` when using the socket.
 
 ## Uninstall
 

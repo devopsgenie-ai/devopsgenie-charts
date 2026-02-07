@@ -8,7 +8,6 @@ Helm charts, deployment manifests, and documentation for **DevOps Genie** and re
 |------|-------------|
 | [charts/devops-genie](charts/devops-genie/) | Helm chart for deploying DevOps Genie on Kubernetes |
 | [docker-compose](docker-compose/) | Docker Compose setup for EC2 or any Docker host |
-| [docs](docs/) | Documentation (install guides, configuration reference) |
 
 ## Quick start
 
@@ -20,7 +19,7 @@ helm repo update
 helm install devops-genie devopsgenie/devops-genie -f my-values.yaml
 ```
 
-See [charts/devops-genie/README.md](charts/devops-genie/README.md) for chart options and [docs](docs/) for full documentation.
+See [charts/devops-genie/README.md](charts/devops-genie/README.md) for chart options and [docs.devopsgenie.ai](https://docs.devopsgenie.ai) for full documentation.
 
 ### Docker Compose (EC2 / single host)
 
@@ -35,11 +34,9 @@ See [docker-compose/README.md](docker-compose/README.md) for details.
 
 ## Documentation
 
-- **Installation:** [docs/installation.md](docs/installation.md)
-- **Configuration:** [docs/configuration.md](docs/configuration.md)
+Documentation (installation, configuration) is hosted at **https://docs.devopsgenie.ai** (repo: [devops-genie-docs](https://github.com/devopsgenie-ai/devops-genie-docs)).
 
-Documentation (Jekyll) is published at: **https://devopsgenie-ai.github.io/devopsgenie-charts/docs/**  
-Helm repo root: **https://devopsgenie-ai.github.io/devopsgenie-charts/**
+Helm repo: **https://devopsgenie-ai.github.io/devopsgenie-charts/**
 
 ## Image registry
 
@@ -47,7 +44,7 @@ Container images are published to GitHub Container Registry (GHCR):
 
 - `ghcr.io/devopsgenie-ai/devops-genie`
 
-You need a GitHub Personal Access Token with `read:packages` to pull private images. See [docs/installation.md](docs/installation.md) for authentication.
+You need a GitHub Personal Access Token with `read:packages` to pull private images. See [docs.devopsgenie.ai](https://docs.devopsgenie.ai) for authentication.
 
 ## Adding this Helm repo
 
@@ -58,7 +55,7 @@ helm search repo devopsgenie
 
 ## Publishing (maintainers)
 
-Charts and docs are published via the **Publish Helm charts** workflow (on release or manual run). It builds the Helm package, merges the index, builds docs with Jekyll, and deploys to GitHub Pages.
+Charts are published via the **Publish Helm charts** workflow (on release or manual run). It builds the Helm package, merges the index, and deploys to GitHub Pages.
 
 If you see *"Get Pages site failed"*: enable Pages in **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow also tries to enable Pages automatically when the repo allows it.
 

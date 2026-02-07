@@ -65,7 +65,15 @@ env: {}
 existingSecret: ""
 # existingSecretKeys: {}  # map env name -> secret key
 
+# GitHub MCP: when Docker socket is not mounted, use the in-image binary (no socket required).
+# Set to true for relay-only / locked-down K8s where you do not mount the Docker socket.
+# When true, GITHUB_PERSONAL_ACCESS_TOKEN (from existingSecret or env) is still required.
+mcp:
+  github:
+    useBinary: false  # set true when dockerSocket.enabled is false
+
 # Mount Docker socket for MCP (e.g. GitHub). Requires Docker/containerd on node.
+# If false, set mcp.github.useBinary: true to run GitHub MCP via in-image binary instead.
 dockerSocket:
   enabled: false
   hostPath: /var/run/docker.sock

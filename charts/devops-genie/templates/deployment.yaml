@@ -48,6 +48,10 @@ spec:
           env:
             - name: PORT
               value: {{ .Values.service.port | quote }}
+            {{- if index (index (index .Values "mcp") "github") "useBinary" }}
+            - name: MCP_GITHUB_USE_BINARY
+              value: "true"
+            {{- end }}
             {{- if .Values.existingSecret }}
             envFrom:
               - secretRef:
