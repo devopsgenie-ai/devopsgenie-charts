@@ -60,7 +60,7 @@ jobs:
 
       - name: Add root landing page
         run: |
-          cat > release/index.html << 'HTMLEOF'
+          cat << 'HTMLEOF' | sed 's/^            //' > release/index.html
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -75,8 +75,8 @@ jobs:
             <p><a href="docs/">View the docs</a> (installation, configuration).</p>
             <h2>Helm repo</h2>
             <pre style="background: #f4f4f4; padding: 1rem; overflow-x: auto;"><code>helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts/
-helm repo update
-helm search repo devopsgenie</code></pre>
+            helm repo update
+            helm search repo devopsgenie</code></pre>
           </body>
           </html>
           HTMLEOF
