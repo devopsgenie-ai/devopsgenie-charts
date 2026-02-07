@@ -1,14 +1,12 @@
-# Build Helm package and publish chart index to GitHub Pages (Helm repo).
-# Run on release or push to main; adjust as needed.
-name: Publish Helm charts
+# Release Helm chart (GitHub Release + tag) and publish chart index to GitHub Pages.
+# Manual trigger only: run from Actions tab when you want to cut a new chart release.
+name: Release and publish Helm chart
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -17,13 +15,20 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
+  release-and-publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Get chart version
+        id: chart-version
+        run: |
+          V=$(grep '^version:' charts/devops-genie/Chart.yaml | sed 's/.*version: *//' | tr -d '"\n\r ')
+          echo "version=$V" >> $GITHUB_OUTPUT
+          echo "tag=v$V" >> $GITHUB_OUTPUT
 
       - name: Helm
         uses: azure/setup-helm@v4
@@ -35,6 +40,14 @@ jobs:
           helm package charts/devops-genie
           mkdir -p release
           mv devops-genie-*.tgz release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.chart-version.outputs.tag }}
+          name: ${{ steps.chart-version.outputs.tag }}
+          files: release/*.tgz
+          generate_release_notes: true
 
       - name: Chart index
         run: |
@@ -83,7 +96,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: publish
+    needs: release-and-publish
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

@@ -1,0 +1,89 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "devops-genie.fullname" . }}
+  labels:
+    {{- include "devops-genie.labels" . | nindent 4 }}
+rules:
+  # Core: pods, services, configmaps, secrets, namespaces, nodes, etc.
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - endpoints
+      - events
+      - namespaces
+      - nodes
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - pods/log
+      - pods/status
+      - replicationcontrollers
+      - secrets
+      - serviceaccounts
+      - services
+    verbs: [get, list, watch]
+  # Apps: deployments, replicasets, statefulsets, daemonsets
+  - apiGroups: ["apps"]
+    resources:
+      - daemonsets
+      - deployments
+      - deployments/scale
+      - replicasets
+      - replicasets/scale
+      - statefulsets
+    verbs: [get, list, watch]
+  # Batch: jobs, cronjobs
+  - apiGroups: ["batch"]
+    resources:
+      - cronjobs
+      - jobs
+    verbs: [get, list, watch]
+  # Networking: ingresses, networkpolicies
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs: [get, list, watch]
+  # RBAC (read-only)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - clusterroles
+      - clusterrolebindings
+      - roles
+      - rolebindings
+    verbs: [get, list, watch]
+  # Autoscaling
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: [get, list, watch]
+  # API discovery
+  - apiGroups: ["apiregistration.k8s.io"]
+    resources:
+      - apiservices
+    verbs: [get, list]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources:
+      - customresourcedefinitions
+    verbs: [get, list]
+  {{- with .Values.rbac.extraRules }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "devops-genie.fullname" . }}
+  labels:
+    {{- include "devops-genie.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "devops-genie.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name | default (include "devops-genie.fullname" .) }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

@@ -14,6 +14,13 @@ serviceAccount:
   create: true
   name: ""
 
+# RBAC: ClusterRole + ClusterRoleBinding so the agent can read cluster state (e.g. list pods, get deployments).
+# Enable when the agent needs to call the Kubernetes API. Requires serviceAccount.create: true.
+rbac:
+  create: false
+  # Optional: add custom ClusterRole rules (appended to the default read-only rules).
+  # extraRules: []
+
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
@@ -53,17 +60,49 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
-# Required: set via values or existing secret
-# Clients should use --set or -f my-values.yaml; do not commit secrets.
+# Application env vars (see infra_agent README / .env.example).
+# Required: ANTHROPIC_API_KEY. Optional: API_KEY (bearer token), GITHUB_PERSONAL_ACCESS_TOKEN,
+# INFRA_REPOSITORY, INFRA_FOLDER, CORS_ORIGINS, MAX_TIMEOUT, MAX_REQUEST_SIZE, DEFAULT_MODEL,
+# RATE_LIMIT_*, CLAUDE_WRAPPER_HOST, DEBUG_MODE, VERBOSE. Use existingSecret for secrets.
 env: {}
-#  ANTHROPIC_API_KEY: "<from-secret>"
-#  GITHUB_PERSONAL_ACCESS_TOKEN: "<from-secret>"
+#  CORS_ORIGINS: '["*"]'
+#  MAX_TIMEOUT: "600000"
 #  INFRA_REPOSITORY: "owner/repo"
 #  INFRA_FOLDER: "path/to/infra/"
 
-# Use existing secret for sensitive env vars (recommended)
+# Use existing secret for sensitive env vars (recommended): ANTHROPIC_API_KEY, API_KEY, GITHUB_PERSONAL_ACCESS_TOKEN.
+# When externalSecret.enabled, the operator creates this secret; leave empty to use the ExternalSecret target name.
 existingSecret: ""
 # existingSecretKeys: {}  # map env name -> secret key
+
+# External Secrets Operator (external-secrets.io): sync secrets from AWS Secrets Manager, Vault, GCP, etc.
+# When enabled, do not set existingSecret (deployment uses the synced secret name automatically).
+externalSecret:
+  enabled: false
+  secretStoreRef:
+    name: ""              # e.g. aws-secrets-manager, vault-store
+    kind: SecretStore     # or ClusterSecretStore
+  refreshInterval: 1h     # how often to sync (e.g. "1h", "30m")
+  target:
+    name: ""              # K8s Secret name to create (default: release fullname)
+  # Map external store keys to Secret keys (env var names). Adjust remoteRef to your store.
+  data: []
+  #  - secretKey: ANTHROPIC_API_KEY
+  #    remoteRef:
+  #      key: prod/devops-genie
+  #      property: anthropic-api-key
+  #  - secretKey: GITHUB_PERSONAL_ACCESS_TOKEN
+  #    remoteRef:
+  #      key: prod/devops-genie
+  #      property: github-token
+  #  - secretKey: API_KEY
+  #    remoteRef:
+  #      key: prod/devops-genie
+  #      property: api-key
+  # Optional: sync entire external secret (all keys). Use instead of data for simple key→keys mapping.
+  dataFrom: []
+  #  - key: prod/devops-genie
+  #    property: ""   # optional: single property to extract
 
 # GitHub MCP: when Docker socket is not mounted, use the in-image binary (no socket required).
 # Set to true for relay-only / locked-down K8s where you do not mount the Docker socket.

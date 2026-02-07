@@ -46,3 +46,14 @@ Image (with default tag from appVersion)
 {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
 {{- printf "%s:%s" .Values.image.repository $tag }}
 {{- end }}
+
+{{/*
+Secret name for envFrom: when externalSecret.enabled use the synced secret name, else existingSecret.
+*/}}
+{{- define "devops-genie.secretName" -}}
+{{- if .Values.externalSecret.enabled -}}
+{{- .Values.externalSecret.target.name | default (include "devops-genie.fullname" .) }}
+{{- else -}}
+{{- .Values.existingSecret }}
+{{- end }}
+{{- end }}

@@ -52,19 +52,26 @@ spec:
             - name: MCP_GITHUB_USE_BINARY
               value: "true"
             {{- end }}
-            {{- if .Values.existingSecret }}
-            envFrom:
-              - secretRef:
-                  name: {{ .Values.existingSecret }}
-            {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
-          {{- if .Values.dockerSocket.enabled }}
+          {{- $secretName := include "devops-genie.secretName" . }}
+          {{- if $secretName }}
+          envFrom:
+            - secretRef:
+                name: {{ $secretName }}
+          {{- end }}
+          {{- if or .Values.dockerSocket.enabled .Values.persistence.enabled }}
           volumeMounts:
+            {{- if .Values.dockerSocket.enabled }}
             - name: docker-socket
               mountPath: /var/run/docker.sock
+            {{- end }}
+            {{- if .Values.persistence.enabled }}
+            - name: data
+              mountPath: /app/.claude
+            {{- end }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -74,6 +81,11 @@ spec:
           hostPath:
             path: {{ .Values.dockerSocket.hostPath }}
             type: Socket
+        {{- end }}
+        {{- if .Values.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "devops-genie.fullname" . }}
         {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

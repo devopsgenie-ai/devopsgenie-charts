@@ -1,9 +1,10 @@
 apiVersion: v2
 name: devops-genie
-description: DevOps Genie AI assistant - OpenAI-compatible API for Claude Code
+description: devops genie ai assistant agent
 type: application
 version: 0.1.0
-appVersion: "2.2.0"
+appVersion: "0.1.0"
+kubeVersion: ">=1.19.0-0"
 keywords:
   - devops-genie
   - claude
