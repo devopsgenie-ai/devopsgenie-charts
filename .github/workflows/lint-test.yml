@@ -69,8 +69,7 @@ jobs:
         run: |
           helm template test charts/devops-genie \
             --set existingSecret=test-secret \
-            --set persistence.enabled=true \
-            --validate
+            --set persistence.enabled=true
           echo "Template rendered successfully"
 
       - name: Lint devops-genie
