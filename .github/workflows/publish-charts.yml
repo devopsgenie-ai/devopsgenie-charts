@@ -4,6 +4,15 @@ name: Release and publish Helm chart
 
 on:
   workflow_dispatch:
+    inputs:
+      chart_version:
+        description: 'Chart/release version (e.g. 0.2.0). Leave empty to use version from Chart.yaml.'
+        required: false
+        type: string
+      release_name:
+        description: 'Release title (default: v<version>)'
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -26,7 +35,11 @@ jobs:
       - name: Get chart version
         id: chart-version
         run: |
-          V=$(grep '^version:' charts/devops-genie/Chart.yaml | sed 's/.*version: *//' | tr -d '"\n\r ')
+          if [[ -n "${{ github.event.inputs.chart_version }}" ]]; then
+            V="${{ github.event.inputs.chart_version }}"
+          else
+            V=$(grep '^version:' charts/devops-genie/Chart.yaml | sed 's/.*version: *//' | tr -d '"\n\r ')
+          fi
           echo "version=$V" >> $GITHUB_OUTPUT
           echo "tag=v$V" >> $GITHUB_OUTPUT
 
@@ -37,15 +50,19 @@ jobs:
 
       - name: Package chart
         run: |
-          helm package charts/devops-genie
           mkdir -p release
+          if [[ -n "${{ github.event.inputs.chart_version }}" ]]; then
+            helm package charts/devops-genie --version ${{ steps.chart-version.outputs.version }}
+          else
+            helm package charts/devops-genie
+          fi
           mv devops-genie-*.tgz release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.chart-version.outputs.tag }}
-          name: ${{ steps.chart-version.outputs.tag }}
+          name: ${{ github.event.inputs.release_name || steps.chart-version.outputs.tag }}
           files: release/*.tgz
           generate_release_notes: true
 
