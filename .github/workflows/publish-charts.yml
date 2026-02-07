@@ -46,25 +46,22 @@ jobs:
           fi
           rm -f release/old-index.yaml
 
-      - name: Add docs for Pages
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: docs
+
+      - name: Build docs with Jekyll
         run: |
-          mkdir -p release/docs
-          cp docs/*.md release/docs/
-          cat > release/docs/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html><head><meta charset="utf-8"><title>DevOps Genie Docs</title></head>
-          <body>
-            <h1>DevOps Genie – Documentation</h1>
-            <ul>
-              <li><a href="https://github.com/devopsgenie-ai/devopsgenie-charts/blob/main/docs/installation.md">Installation</a></li>
-              <li><a href="https://github.com/devopsgenie-ai/devopsgenie-charts/blob/main/docs/configuration.md">Configuration</a></li>
-            </ul>
-            <p>Helm repo: <code>helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts/</code></p>
-          </body></html>
-          EOF
+          cd docs
+          bundle exec jekyll build -d ../release/docs
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        with:
+          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

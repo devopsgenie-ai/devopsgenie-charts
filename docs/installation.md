@@ -1,3 +1,8 @@
+---
+layout: default
+title: Installation
+---
+
 # Installation
 
 DevOps Genie can be installed on:

@@ -38,7 +38,8 @@ See [docker-compose/README.md](docker-compose/README.md) for details.
 - **Installation:** [docs/installation.md](docs/installation.md)
 - **Configuration:** [docs/configuration.md](docs/configuration.md)
 
-Documentation is also published at: **https://devopsgenie-ai.github.io/devopsgenie-charts/**
+Documentation (Jekyll) is published at: **https://devopsgenie-ai.github.io/devopsgenie-charts/docs/**  
+Helm repo root: **https://devopsgenie-ai.github.io/devopsgenie-charts/**
 
 ## Image registry
 
@@ -54,6 +55,12 @@ You need a GitHub Personal Access Token with `read:packages` to pull private ima
 helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts/
 helm search repo devopsgenie
 ```
+
+## Publishing (maintainers)
+
+Charts and docs are published via the **Publish Helm charts** workflow (on release or manual run). It builds the Helm package, merges the index, builds docs with Jekyll, and deploys to GitHub Pages.
+
+If you see *"Get Pages site failed"*: enable Pages in **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow also tries to enable Pages automatically when the repo allows it.
 
 ## License
 

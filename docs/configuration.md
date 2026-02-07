@@ -1,3 +1,8 @@
+---
+layout: default
+title: Configuration
+---
+
 # Configuration
 
 DevOps Genie is configured via environment variables.

@@ -1,0 +1,5 @@
+title: DevOps Genie Docs
+description: Installation and configuration for DevOps Genie
+theme: jekyll-theme-cayman
+baseurl: /devopsgenie-charts/docs
+url: https://devopsgenie-ai.github.io
