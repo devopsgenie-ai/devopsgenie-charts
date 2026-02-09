@@ -5,7 +5,7 @@ image:
   repository: ghcr.io/devopsgenie-ai/devops-genie
   tag: ""  # defaults to Chart appVersion
   pullPolicy: IfNotPresent
-  pullSecrets: []  # e.g. [ghcr] for GHCR
+  pullSecrets: []  # e.g. [ghcr] or [{name: ghcr}] for private GHCR
 
 nameOverride: ""
 fullnameOverride: ""

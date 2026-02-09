@@ -48,6 +48,19 @@ Image (with default tag from appVersion)
 {{- end }}
 
 {{/*
+Normalize imagePullSecrets to Kubernetes format (list of {name: ...}).
+Accepts either ["secretname"] or [{name: "secretname"}] in values.
+*/}}
+{{- define "devops-genie.imagePullSecrets" -}}
+{{- with .Values.image.pullSecrets }}
+imagePullSecrets:
+  {{- range . }}
+  - name: {{ if kindIs "map" . }}{{ .name }}{{ else }}{{ . }}{{ end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Secret name for envFrom: when externalSecret.enabled use the synced secret name, else existingSecret.
 */}}
 {{- define "devops-genie.secretName" -}}
