@@ -1,5 +1,7 @@
-# Release a Helm chart (GitHub Release + tag) and publish chart index to GitHub Pages.
-# Manual trigger only: choose which chart to release. Supports devops-genie and devops-genie-sre-agent.
+# Release a Helm chart and publish to the repo index (GitHub Pages).
+# One repo, multiple charts (like https://github.com/grafana/k8s-monitoring-helm/tree/main/charts).
+# Packages are hosted separately: each chart is a separate entry in the index; one workflow run releases one chart.
+# Manual trigger only. Tag = <chart>-vX.Y.Z (e.g. devops-genie-v0.1.0, sre-agent-v0.1.0).
 name: Release and publish Helm chart
 
 on:
@@ -14,7 +16,7 @@ on:
           - devops-genie-sre-agent
         default: devops-genie
       chart_version:
-        description: 'Chart/release version (e.g. 0.2.0). Leave empty to use version from Chart.yaml.'
+        description: 'Chart version (e.g. 0.1.0). Leave empty to use version from Chart.yaml.'
         required: false
         type: string
       release_name:
@@ -40,12 +42,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get chart version
+      - name: Get chart version and tag
         id: chart-version
         run: |
           CHART="${{ github.event.inputs.chart }}"
           CHART_PATH="charts/${CHART}"
-          if [[ -z "$CHART_PATH" || ! -d "$CHART_PATH" ]]; then
+          if [[ ! -d "$CHART_PATH" ]]; then
             echo "::error::Chart not found: $CHART_PATH"
             exit 1
           fi
@@ -54,8 +56,13 @@ jobs:
           else
             V=$(grep '^version:' "$CHART_PATH/Chart.yaml" | sed 's/.*version: *//' | tr -d '"\n\r ')
           fi
+          # Tag format: <chart>-vX.Y.Z (packages hosted separately per chart)
+          case "$CHART" in
+            devops-genie-sre-agent) TAG_PREFIX="sre-agent" ;;
+            *) TAG_PREFIX="$CHART" ;;
+          esac
           echo "version=$V" >> $GITHUB_OUTPUT
-          echo "tag=${CHART}-v${V}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG_PREFIX}-v${V}" >> $GITHUB_OUTPUT
           echo "chart=$CHART" >> $GITHUB_OUTPUT
 
       - name: Helm
@@ -79,7 +86,7 @@ jobs:
           files: release/*.tgz
           generate_release_notes: true
 
-      - name: Chart index
+      - name: Chart index (merge with existing so both packages stay in one index)
         run: |
           curl -sfSL -o release/old-index.yaml "https://devopsgenie-ai.github.io/devopsgenie-charts/index.yaml" || rm -f release/old-index.yaml
           if [ -s release/old-index.yaml ] && grep -q '^entries:' release/old-index.yaml; then
@@ -89,7 +96,7 @@ jobs:
           fi
           rm -f release/old-index.yaml
 
-      - name: Add root landing page
+      - name: Add landing page (list both charts)
         run: |
           cat << 'HTMLEOF' | sed 's/^            //' > release/index.html
           <!DOCTYPE html>
@@ -106,6 +113,11 @@ jobs:
             <pre style="background: #f4f4f4; padding: 1rem; overflow-x: auto;"><code>helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts/
             helm repo update
             helm search repo devopsgenie</code></pre>
+            <h2>Charts (packages hosted separately)</h2>
+            <ul>
+              <li><strong>devops-genie</strong> – AI assistant agent</li>
+              <li><strong>devops-genie-sre-agent</strong> – SRE troubleshooting and alert investigation</li>
+            </ul>
           </body>
           </html>
           HTMLEOF
