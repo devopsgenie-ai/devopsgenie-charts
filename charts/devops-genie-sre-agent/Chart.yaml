@@ -1,0 +1,19 @@
+apiVersion: v2
+name: devops-genie-sre-agent
+description: DevOps Genie SRE Agent - AI agent for cloud troubleshooting and alert investigation (Helm chart)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.19.0-0"
+keywords:
+  - devops-genie
+  - sre
+  - ai
+  - troubleshooting
+  - kubernetes
+home: https://github.com/devopsgenie-ai/devops-sre-agent
+sources:
+  - https://github.com/devopsgenie-ai/devops-sre-agent
+maintainers:
+  - name: DevOps Genie
+    url: https://github.com/devopsgenie-ai

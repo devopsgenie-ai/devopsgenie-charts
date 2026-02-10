@@ -1,16 +1,24 @@
-# Release Helm chart (GitHub Release + tag) and publish chart index to GitHub Pages.
-# Manual trigger only: run from Actions tab when you want to cut a new chart release.
+# Release a Helm chart (GitHub Release + tag) and publish chart index to GitHub Pages.
+# Manual trigger only: choose which chart to release. Supports devops-genie and devops-genie-sre-agent.
 name: Release and publish Helm chart
 
 on:
   workflow_dispatch:
     inputs:
+      chart:
+        description: 'Chart to release'
+        required: true
+        type: choice
+        options:
+          - devops-genie
+          - devops-genie-sre-agent
+        default: devops-genie
       chart_version:
         description: 'Chart/release version (e.g. 0.2.0). Leave empty to use version from Chart.yaml.'
         required: false
         type: string
       release_name:
-        description: 'Release title (default: v<version>)'
+        description: 'Release title (default: <chart>-v<version>)'
         required: false
         type: string
 
@@ -35,13 +43,20 @@ jobs:
       - name: Get chart version
         id: chart-version
         run: |
+          CHART="${{ github.event.inputs.chart }}"
+          CHART_PATH="charts/${CHART}"
+          if [[ -z "$CHART_PATH" || ! -d "$CHART_PATH" ]]; then
+            echo "::error::Chart not found: $CHART_PATH"
+            exit 1
+          fi
           if [[ -n "${{ github.event.inputs.chart_version }}" ]]; then
             V="${{ github.event.inputs.chart_version }}"
           else
-            V=$(grep '^version:' charts/devops-genie/Chart.yaml | sed 's/.*version: *//' | tr -d '"\n\r ')
+            V=$(grep '^version:' "$CHART_PATH/Chart.yaml" | sed 's/.*version: *//' | tr -d '"\n\r ')
           fi
           echo "version=$V" >> $GITHUB_OUTPUT
-          echo "tag=v$V" >> $GITHUB_OUTPUT
+          echo "tag=${CHART}-v${V}" >> $GITHUB_OUTPUT
+          echo "chart=$CHART" >> $GITHUB_OUTPUT
 
       - name: Helm
         uses: azure/setup-helm@v4
@@ -50,13 +65,11 @@ jobs:
 
       - name: Package chart
         run: |
+          CHART="${{ steps.chart-version.outputs.chart }}"
+          V="${{ steps.chart-version.outputs.version }}"
           mkdir -p release
-          if [[ -n "${{ github.event.inputs.chart_version }}" ]]; then
-            helm package charts/devops-genie --version ${{ steps.chart-version.outputs.version }}
-          else
-            helm package charts/devops-genie
-          fi
-          mv devops-genie-*.tgz release/
+          helm package "charts/${CHART}" --version "$V"
+          mv "${CHART}-${V}.tgz" release/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

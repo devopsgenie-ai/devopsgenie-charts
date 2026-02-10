@@ -74,3 +74,11 @@ jobs:
 
       - name: Lint devops-genie
         run: helm lint charts/devops-genie
+
+      - name: Template devops-genie-sre-agent
+        run: |
+          helm template test charts/devops-genie-sre-agent
+          echo "Template rendered successfully"
+
+      - name: Lint devops-genie-sre-agent
+        run: helm lint charts/devops-genie-sre-agent
