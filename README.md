@@ -2,11 +2,44 @@
 
 Helm charts for **DevOps Genie** from [devopsgenie-ai](https://github.com/devopsgenie-ai).
 
+## Repository structure
+
+Charts live in subdirectories under `charts/`; the Helm repo is served from the **gh-pages** branch (GitHub Pages).
+
+```
+devopsgenie-charts/
+├── charts/
+│   ├── devops-genie/
+│   │   ├── Chart.yaml
+│   │   ├── values.yaml
+│   │   └── templates/
+│   └── devops-genie-sre-agent/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+├── README.md
+└── (gh-pages branch: index.yaml, *.tgz, index.html)
+```
+
+- **Source:** `main` (or default branch) holds chart source under `charts/`.
+- **Helm repo:** The **gh-pages** branch holds the built repo: `index.yaml` (catalog of all chart versions), `.tgz` packages, and a simple `index.html` landing page. GitHub Pages serves this branch at the repo root.
+
+## GitHub Pages setup
+
+1. In the repo: **Settings → Pages**.
+2. Under **Build and deployment**, choose **Deploy from a branch**.
+3. **Branch:** select `gh-pages`, folder **/ (root)**, then **Save**.
+
+The first release workflow run will create the `gh-pages` branch if it does not exist. The Helm repo URL is:
+
+**https://devopsgenie-ai.github.io/devopsgenie-charts/**
+
 ## Contents
 
 | Path | Description |
 |------|-------------|
 | [charts/devops-genie](charts/devops-genie/) | Helm chart for deploying DevOps Genie on Kubernetes |
+| [charts/devops-genie-sre-agent](charts/devops-genie-sre-agent/) | Helm chart for SRE troubleshooting and alert investigation |
 
 ## Prerequisites
 
@@ -128,9 +161,13 @@ helm search repo devopsgenie
 
 ## Publishing (maintainers)
 
-Charts are published via the **Publish Helm charts** workflow (on release or manual run). It builds the Helm package, merges the index, and deploys to GitHub Pages.
+Charts are published via GitHub Actions:
 
-If you see *"Get Pages site failed"*: enable Pages in **Settings → Pages → Build and deployment → Source: GitHub Actions**. The workflow also tries to enable Pages automatically when the repo allows it.
+1. **Package:** `helm package charts/<chart>` produces a `.tgz` file.
+2. **GitHub Release:** The workflow creates a release (tag `vX.Y.Z`) and attaches the `.tgz`.
+3. **Helm repo index:** The workflow checks out (or creates) the **gh-pages** branch, copies the new `.tgz` there, runs `helm repo index . --merge index.yaml --url https://devopsgenie-ai.github.io/devopsgenie-charts`, adds a landing `index.html`, and pushes to **gh-pages**.
+
+Use **Release and publish Helm chart** (chart dropdown) or the per-chart workflows **Release devops-genie chart** / **Release devops-genie-sre-agent chart**. Ensure **Settings → Pages** is set to **Deploy from a branch** → **gh-pages** → **/ (root)**.
 
 ## License
 
