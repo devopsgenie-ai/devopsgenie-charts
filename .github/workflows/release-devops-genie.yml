@@ -127,5 +127,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if ! git diff --staged --quiet; then
             git commit -m "Publish ${{ env.CHART }}-${{ steps.chart-version.outputs.version }}"
-            git push origin gh-pages
+            git push origin HEAD:gh-pages
           fi
