@@ -3,6 +3,27 @@ entries:
   devops-genie:
   - apiVersion: v2
     appVersion: 0.1.5
+    created: "2026-02-12T01:17:43.809412145Z"
+    description: devops genie ai assistant agent
+    digest: e4fa12643cf604b8eb606e348d44c527338e729537e2da129c56b123624c21e1
+    home: https://github.com/devopsgenie-ai/devopsgenie-charts
+    keywords:
+    - devops-genie
+    - claude
+    - ai
+    kubeVersion: '>=1.19.0-0'
+    maintainers:
+    - name: DevOps Genie
+      url: https://github.com/devopsgenie-ai
+    name: devops-genie
+    sources:
+    - https://github.com/devopsgenie-ai/devopsgenie-charts
+    type: application
+    urls:
+    - https://devopsgenie-ai.github.io/devopsgenie-charts/devops-genie-0.1.2.tgz
+    version: 0.1.2
+  - apiVersion: v2
+    appVersion: 0.1.5
     created: "2026-02-11T04:00:31.188648186Z"
     description: devops genie ai assistant agent
     digest: 40b2294c74421fd23125c11fd36e50b70e1dbae059257230cb9df493156baeb8
@@ -47,4 +68,4 @@ entries:
     urls:
     - https://devopsgenie-ai.github.io/devopsgenie-charts/devops-genie-sre-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-02-11T04:00:31.187830512Z"
+generated: "2026-02-12T01:17:43.808677949Z"
