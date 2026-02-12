@@ -87,6 +87,9 @@ If the image is public, you can omit `pullSecrets`.
 | `ingress.annotations` | Annotations (auth, proxy, CORS, rate limit, external-dns, etc.) | `{}` |
 | `ingress.hosts` / `tls` | Host and path rules, TLS | see values.yaml |
 | `resources` | CPU/memory limits and requests | see values.yaml |
+| `livenessProbe` | Liveness probe spec (httpGet, initialDelaySeconds, periodSeconds, etc.) | `httpGet: /health`, port http, initialDelaySeconds: 30, periodSeconds: 10 |
+| `readinessProbe` | Readiness probe spec | `httpGet: /health`, port http, initialDelaySeconds: 5, periodSeconds: 5 |
+| `startupProbe` | Startup probe spec; omit or leave empty to disable | unset (no startup probe) |
 
 ## Required configuration
 

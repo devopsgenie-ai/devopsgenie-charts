@@ -1,6 +1,6 @@
 # Release a Helm chart and publish to the repo index (GitHub Pages branch).
 # One repo, multiple charts: charts/ has one dir per chart; gh-pages branch has index.yaml + .tgz files.
-# Manual trigger only. Tag = vX.Y.Z (semantic version only).
+# Manual trigger only. Tag = <chart>-<version> (chart-specific).
 # GitHub Pages: Settings → Pages → Deploy from a branch → gh-pages → / (root).
 name: Release and publish Helm chart
 
@@ -15,12 +15,22 @@ on:
           - devops-genie
           - devops-genie-sre-agent
         default: devops-genie
+      bump:
+        description: 'Bump version in Chart.yaml (patch/minor/major). Use "none" to keep current version.'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - none
+        default: patch
       chart_version:
-        description: 'Chart version (e.g. 0.1.0). Leave empty to use version from Chart.yaml.'
+        description: 'Chart version (e.g. 0.1.0). Leave empty to use/bump version from Chart.yaml.'
         required: false
         type: string
       release_name:
-        description: 'Release title (default: v<version>)'
+        description: 'Release title (default: <chart>-<version>)'
         required: false
         type: string
 
@@ -39,6 +49,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version in Chart.yaml
+        if: github.event.inputs.chart_version == '' && github.event.inputs.bump != 'none'
+        run: |
+          CHART="${{ github.event.inputs.chart }}"
+          CHART_PATH="charts/${CHART}/Chart.yaml"
+          V=$(grep '^version:' "$CHART_PATH" | sed 's/.*version: *//' | tr -d '"\n\r ')
+          IFS='.' read -r major minor patch <<< "$V"
+          case "${{ github.event.inputs.bump }}" in
+            patch) patch=$((patch + 1)) ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            *) exit 1 ;;
+          esac
+          NEXT="${major}.${minor}.${patch}"
+          sed -i "s/^version:.*/version: ${NEXT}/" "$CHART_PATH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$CHART_PATH"
+          git commit -m "chore(${CHART}): bump version to ${NEXT}"
+          git push origin HEAD:main
 
       - name: Get chart version and tag
         id: chart-version
@@ -55,7 +87,7 @@ jobs:
             V=$(grep '^version:' "$CHART_PATH/Chart.yaml" | sed 's/.*version: *//' | tr -d '"\n\r ')
           fi
           echo "version=$V" >> $GITHUB_OUTPUT
-          echo "tag=v${V}" >> $GITHUB_OUTPUT
+          echo "tag=${CHART}-${V}" >> $GITHUB_OUTPUT
           echo "chart=$CHART" >> $GITHUB_OUTPUT
 
       - name: Helm
@@ -129,9 +161,10 @@ jobs:
         run: |
           cd pages
           git add -A
+          git add -f *.tgz
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if ! git diff --staged --quiet; then
             git commit -m "Publish ${{ steps.chart-version.outputs.chart }}-${{ steps.chart-version.outputs.version }}"
-            git push origin gh-pages
+            git push origin HEAD:gh-pages
           fi
