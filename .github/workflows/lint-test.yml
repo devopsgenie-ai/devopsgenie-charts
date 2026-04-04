@@ -83,12 +83,30 @@ jobs:
       - name: Lint devops-genie-sre-agent
         run: helm lint charts/devops-genie-sre-agent
 
-      - name: Template dg-platform-agent
+      - name: Template dg-platform-agent (default)
         run: |
           helm template test charts/dg-platform-agent \
-            --set redis.url=redis://test:6379 \
-            --set auth.agentJwtSecret=test-secret
-          echo "Template rendered successfully"
+            --set existingSecret=test-secret \
+            --set ghcr.existingSecret=ghcr
+          echo "Template rendered successfully (default)"
+
+      - name: Template dg-platform-agent (no agent-sandbox)
+        run: |
+          helm template test charts/dg-platform-agent \
+            --set existingSecret=test-secret \
+            --set ghcr.existingSecret=ghcr \
+            --set agentSandbox.install=false
+          echo "Template rendered successfully (agentSandbox disabled)"
+
+      - name: Template dg-platform-agent (ESO enabled)
+        run: |
+          helm template test charts/dg-platform-agent \
+            --set externalSecret.enabled=true \
+            --set externalSecret.secretStoreRef.name=aws-sm \
+            --set ghcr.externalSecret.enabled=true \
+            --set ghcr.externalSecret.secretStoreRef.name=aws-sm \
+            --set ghcr.externalSecret.remoteRef.key=ghcr-token
+          echo "Template rendered successfully (ESO enabled)"
 
       - name: Lint dg-platform-agent
         run: helm lint charts/dg-platform-agent
