@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dg-platform-agent.fullname" . }}-ws-gateway
+  labels:
+    {{- include "dg-platform-agent.wsGateway.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.wsGateway.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dg-platform-agent.wsGateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "dg-platform-agent.wsGateway.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- include "dg-platform-agent.wsGateway.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ .Values.serviceAccount.name | default (include "dg-platform-agent.fullname" .) }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: ws-gateway
+          image: {{ include "dg-platform-agent.wsGateway.image" . }}
+          imagePullPolicy: {{ .Values.wsGateway.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.wsGateway.port }}
+              protocol: TCP
+          {{- if .Values.wsGateway.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.wsGateway.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.wsGateway.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.wsGateway.readinessProbe | nindent 12 }}
+          {{- end }}
+          env:
+            {{- if .Values.redis.url }}
+            - name: REDIS_URL
+              value: {{ .Values.redis.url | quote }}
+            {{- end }}
+            {{- if .Values.auth.agentJwtSecret }}
+            - name: AGENT_JWT_SECRET
+              value: {{ .Values.auth.agentJwtSecret | quote }}
+            {{- end }}
+            {{- range $k, $v := .Values.wsGateway.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- $secretName := include "dg-platform-agent.secretName" . }}
+          {{- if $secretName }}
+          envFrom:
+            - secretRef:
+                name: {{ $secretName }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.wsGateway.resources | nindent 12 }}
+      {{- with .Values.wsGateway.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.wsGateway.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.wsGateway.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

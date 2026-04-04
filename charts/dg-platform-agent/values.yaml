@@ -1,0 +1,123 @@
+# Default values for dg-platform-agent.
+
+global:
+  nameOverride: ""
+  fullnameOverride: ""
+
+# -- Agent Pod image config (not deployed by chart; Controller creates pods dynamically)
+agentPod:
+  image:
+    repository: ghcr.io/devopsgenie-ai/dg-agent-pod
+    tag: "0.1.0"
+
+# -- Controller: manages ephemeral agent pods
+controller:
+  image:
+    repository: ghcr.io/devopsgenie-ai/dg-controller
+    tag: ""  # defaults to Chart appVersion
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  replicaCount: 1
+  port: 8080
+  env: {}
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- WS Gateway: bridges frontend clients via Redis pub/sub
+wsGateway:
+  image:
+    repository: ghcr.io/devopsgenie-ai/dg-ws-gateway
+    tag: ""  # defaults to Chart appVersion
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  replicaCount: 1
+  port: 5004
+  env: {}
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  service:
+    type: ClusterIP
+    port: 5004
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: ws-gateway.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# -- Redis connection URL (required)
+redis:
+  url: ""
+
+# -- Auth config
+auth:
+  agentJwtSecret: ""
+
+# -- RBAC: Role + RoleBinding (namespace-scoped) for Controller to manage agent pods
+rbac:
+  create: false
+
+serviceAccount:
+  create: true
+  name: ""
+
+# -- Shared pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# -- Shared container security context
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Use an existing secret for sensitive env vars (REDIS_URL, AGENT_JWT_SECRET, etc.)
+existingSecret: ""
+
+# -- External Secrets Operator integration
+externalSecret:
+  enabled: false
+  secretStoreRef:
+    name: ""
+    kind: SecretStore
+  refreshInterval: 1h
+  target:
+    name: ""
+  data: []
+  dataFrom: []

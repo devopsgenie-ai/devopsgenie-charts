@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dg-platform-agent.fullname" . }}-controller
+  labels:
+    {{- include "dg-platform-agent.controller.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.controller.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/agent-pod-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- include "dg-platform-agent.controller.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ .Values.serviceAccount.name | default (include "dg-platform-agent.fullname" .) }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: controller
+          image: {{ include "dg-platform-agent.controller.image" . }}
+          imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.controller.port }}
+              protocol: TCP
+          env:
+            {{- if .Values.redis.url }}
+            - name: REDIS_URL
+              value: {{ .Values.redis.url | quote }}
+            {{- end }}
+            {{- if .Values.auth.agentJwtSecret }}
+            - name: AGENT_JWT_SECRET
+              value: {{ .Values.auth.agentJwtSecret | quote }}
+            {{- end }}
+            {{- range $k, $v := .Values.controller.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "dg-platform-agent.fullname" . }}-agent-pod-config
+            {{- $secretName := include "dg-platform-agent.secretName" . }}
+            {{- if $secretName }}
+            - secretRef:
+                name: {{ $secretName }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.controller.resources | nindent 12 }}
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
