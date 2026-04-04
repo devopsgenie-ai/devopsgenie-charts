@@ -3,7 +3,7 @@ entries:
   devops-genie:
   - apiVersion: v2
     appVersion: 0.1.5
-    created: "2026-04-04T19:33:12.924336128Z"
+    created: "2026-04-04T20:40:21.024592708Z"
     description: devops genie ai assistant agent
     digest: e4fa12643cf604b8eb606e348d44c527338e729537e2da129c56b123624c21e1
     home: https://github.com/devopsgenie-ai/devopsgenie-charts
@@ -46,7 +46,7 @@ entries:
   devops-genie-sre-agent:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-04-04T19:33:12.927001654Z"
+    created: "2026-04-04T20:40:21.025977157Z"
     description: DevOps Genie SRE Agent - AI agent for cloud troubleshooting and alert
       investigation (Helm chart)
     digest: bc85adadec97bbfa3103b4dd7efbdb6a7d553b1157477944b624142ba3ecde89
@@ -95,11 +95,11 @@ entries:
   dg-platform-agent:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-04-04T19:33:12.929512728Z"
+    created: "2026-04-04T20:40:21.027854662Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
-    digest: 44fa715a3f6ac046a13b43f0607f2d5511873fed2381266a36faf3e2fe3f1bf4
+    digest: bda1799afe3fc1648a72b80bdfc205abfe0429807099c1a2d02d0cf12fead260
     home: https://github.com/devopsgenie-ai/devopsgenie-charts
     keywords:
     - devops-genie
@@ -118,4 +118,4 @@ entries:
     urls:
     - https://devopsgenie-ai.github.io/devopsgenie-charts/dg-platform-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-04-04T19:33:12.923021188Z"
+generated: "2026-04-04T20:40:21.023844534Z"
