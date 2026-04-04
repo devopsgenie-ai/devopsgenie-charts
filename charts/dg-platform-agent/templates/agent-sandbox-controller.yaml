@@ -1,0 +1,60 @@
+{{- if .Values.agentSandbox.install -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agent-sandbox-controller
+  namespace: agent-sandbox-system
+  labels:
+    app: agent-sandbox-controller
+    {{- include "dg-platform-agent.labels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-sandbox-controller
+  namespace: agent-sandbox-system
+  labels:
+    app: agent-sandbox-controller
+    {{- include "dg-platform-agent.labels" . | nindent 4 }}
+spec:
+  selector:
+    app: agent-sandbox-controller
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-sandbox-controller
+  namespace: agent-sandbox-system
+  labels:
+    app: agent-sandbox-controller
+    {{- include "dg-platform-agent.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-sandbox-controller
+  template:
+    metadata:
+      labels:
+        app: agent-sandbox-controller
+    spec:
+      serviceAccountName: agent-sandbox-controller
+      containers:
+        - name: agent-sandbox-controller
+          image: {{ .Values.agentSandbox.image.repository }}:{{ .Values.agentSandbox.image.tag }}
+          args:
+            - "--leader-elect=true"
+            - "--extensions"
+          ports:
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: healthz
+              containerPort: 8081
+              protocol: TCP
+{{- end }}

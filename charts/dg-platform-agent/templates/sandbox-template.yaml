@@ -1,0 +1,80 @@
+{{- if .Values.sandboxTemplate.create -}}
+apiVersion: extensions.agents.x-k8s.io/v1alpha1
+kind: SandboxTemplate
+metadata:
+  name: {{ .Values.sandbox.templateName }}
+  namespace: {{ include "dg-platform-agent.sandboxNamespace" . }}
+  labels:
+    {{- include "dg-platform-agent.labels" . | nindent 4 }}
+spec:
+  podTemplate:
+    spec:
+      {{- $ghcrName := include "dg-platform-agent.ghcrSecretName" . }}
+      {{- if $ghcrName }}
+      imagePullSecrets:
+        - name: {{ $ghcrName }}
+      {{- end }}
+      containers:
+        - name: agent
+          image: {{ .Values.agentPod.image.repository }}:{{ .Values.agentPod.image.tag }}
+          ports:
+            - containerPort: 8080
+          resources:
+            {{- toYaml .Values.sandboxTemplate.resources | nindent 12 }}
+          volumeMounts:
+            - name: workspace
+              mountPath: /work
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: workspace
+          emptyDir:
+            sizeLimit: {{ .Values.sandboxTemplate.workspaceSize }}
+  {{- if .Values.sandboxTemplate.networkPolicy.managed }}
+  networkPolicyManagement: Managed
+  networkPolicy:
+    egress:
+      - to:
+          - namespaceSelector: {}
+        ports:
+          - protocol: UDP
+            port: 53
+          - protocol: TCP
+            port: 53
+      - to:
+          - ipBlock:
+              cidr: 0.0.0.0/0
+              except:
+                - 10.0.0.0/8
+                - 172.16.0.0/12
+                - 192.168.0.0/16
+        ports:
+          - protocol: TCP
+            port: 443
+      - to:
+          - ipBlock:
+              cidr: 0.0.0.0/0
+              except:
+                - 10.0.0.0/8
+                - 172.16.0.0/12
+                - 192.168.0.0/16
+        ports:
+          - protocol: TCP
+            port: 22
+      - to:
+          - ipBlock:
+              cidr: 10.0.0.0/8
+        ports:
+          - protocol: TCP
+            port: 443
+          - protocol: TCP
+            port: 6443
+  {{- else }}
+  networkPolicyManagement: Unmanaged
+  {{- end }}
+{{- end }}

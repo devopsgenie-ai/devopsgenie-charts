@@ -1,0 +1,8 @@
+{{- if .Values.agentSandbox.install -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-sandbox-system
+  labels:
+    {{- include "dg-platform-agent.labels" . | nindent 4 }}
+{{- end }}
