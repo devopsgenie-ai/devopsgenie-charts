@@ -9,3 +9,9 @@ charts/*/charts/
 # OS
 .DS_Store
 Thumbs.db
+
+# IDE / tooling (internal)
+.claude/
+.cursor/
+docs/superpowers/
+helm-chart-dev-workspace/

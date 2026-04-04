@@ -1,5 +1,4 @@
 # Lint and test Helm charts on push/PR when charts or this workflow change.
-# Ref: https://oneuptime.com/blog/post/2026-01-17-helm-cicd-github-actions/view
 name: Lint and Test Charts
 
 on:
@@ -64,24 +63,6 @@ jobs:
         uses: azure/setup-helm@v4
         with:
           version: "v3.14.0"
-
-      - name: Template devops-genie
-        run: |
-          helm template test charts/devops-genie \
-            --set existingSecret=test-secret \
-            --set persistence.enabled=true
-          echo "Template rendered successfully"
-
-      - name: Lint devops-genie
-        run: helm lint charts/devops-genie
-
-      - name: Template devops-genie-sre-agent
-        run: |
-          helm template test charts/devops-genie-sre-agent
-          echo "Template rendered successfully"
-
-      - name: Lint devops-genie-sre-agent
-        run: helm lint charts/devops-genie-sre-agent
 
       - name: Template dg-platform-agent (default)
         run: |
