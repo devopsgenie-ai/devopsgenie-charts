@@ -1,0 +1,19 @@
+apiVersion: v2
+name: dg-platform-agent
+description: DevOps Genie agent platform stack — Controller, WS Gateway, and dynamic Agent Pods
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.19.0-0"
+keywords:
+  - devops-genie
+  - platform-agent
+  - controller
+  - ws-gateway
+  - ai
+home: https://github.com/devopsgenie-ai/devopsgenie-charts
+sources:
+  - https://github.com/devopsgenie-ai/devopsgenie-charts
+maintainers:
+  - name: DevOps Genie
+    url: https://github.com/devopsgenie-ai

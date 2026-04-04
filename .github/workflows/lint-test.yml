@@ -82,3 +82,13 @@ jobs:
 
       - name: Lint devops-genie-sre-agent
         run: helm lint charts/devops-genie-sre-agent
+
+      - name: Template dg-platform-agent
+        run: |
+          helm template test charts/dg-platform-agent \
+            --set redis.url=redis://test:6379 \
+            --set auth.agentJwtSecret=test-secret
+          echo "Template rendered successfully"
+
+      - name: Lint dg-platform-agent
+        run: helm lint charts/dg-platform-agent

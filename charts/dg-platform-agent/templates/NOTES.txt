@@ -1,0 +1,28 @@
+dg-platform-agent has been deployed with the following components:
+
+  1. Controller  — manages ephemeral agent pods
+  2. WS Gateway  — WebSocket bridge (Redis pub/sub)
+  3. Agent Pods   — created dynamically by the Controller (not deployed by this chart)
+
+---
+
+Controller:
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "dg-platform-agent.fullname" . }}-controller 8080:{{ .Values.controller.port }}
+
+WS Gateway:
+{{- if .Values.wsGateway.ingress.enabled }}
+{{- range $host := .Values.wsGateway.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.wsGateway.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
+  {{- end }}
+{{- end }}
+{{- else }}
+  kubectl --namespace {{ .Release.Namespace }} port-forward service/{{ include "dg-platform-agent.fullname" . }}-ws-gateway 5004:{{ .Values.wsGateway.service.port }}
+{{- end }}
+
+Health check (WS Gateway):
+  curl -s http://127.0.0.1:5004/health
+
+Logs:
+  kubectl logs -f deploy/{{ include "dg-platform-agent.fullname" . }}-controller -n {{ .Release.Namespace }}
+  kubectl logs -f deploy/{{ include "dg-platform-agent.fullname" . }}-ws-gateway -n {{ .Release.Namespace }}

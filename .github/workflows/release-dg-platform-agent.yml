@@ -1,7 +1,7 @@
-# Release devops-genie-sre-agent Helm chart only.
-# Like https://github.com/grafana/k8s-monitoring-helm/blob/main/.github/workflows/release-v1.yml
+# Release dg-platform-agent Helm chart only.
+# Like https://github.com/grafana/k8s-monitoring-helm/blob/main/.github/workflows/release.yml
 # Tag = <chart>-<version> (chart-specific, like Grafana k8s-monitoring-helm).
-name: Release devops-genie-sre-agent chart
+name: Release dg-platform-agent chart
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ on:
         required: false
         type: string
       release_name:
-        description: 'Release title (default: devops-genie-sre-agent-<version>)'
+        description: 'Release title (default: dg-platform-agent-<version>)'
         required: false
         type: string
 
@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  CHART: devops-genie-sre-agent
+  CHART: dg-platform-agent
 
 jobs:
   release-and-publish:
