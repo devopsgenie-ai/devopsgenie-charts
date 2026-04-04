@@ -12,12 +12,13 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/agent-pod-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       labels:
         {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 8 }}
+        dg-role: controller
     spec:
-      {{- include "dg-platform-agent.controller.imagePullSecrets" . | nindent 6 }}
-      serviceAccountName: {{ .Values.serviceAccount.name | default (include "dg-platform-agent.fullname" .) }}
+      {{- include "dg-platform-agent.imagePullSecrets" . | nindent 6 }}
+      serviceAccountName: {{ include "dg-platform-agent.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -30,15 +31,29 @@ spec:
             - name: http
               containerPort: {{ .Values.controller.port }}
               protocol: TCP
+          {{- with .Values.controller.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.controller.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           env:
-            {{- if .Values.redis.url }}
-            - name: REDIS_URL
-              value: {{ .Values.redis.url | quote }}
-            {{- end }}
-            {{- if .Values.auth.agentJwtSecret }}
-            - name: AGENT_JWT_SECRET
-              value: {{ .Values.auth.agentJwtSecret | quote }}
-            {{- end }}
+            - name: DG_WS_URL
+              value: {{ .Values.server.wsUrl | quote }}
+            - name: DG_AUTH_URL
+              value: {{ .Values.server.authUrl | quote }}
+            - name: SANDBOX_NAMESPACE
+              value: {{ include "dg-platform-agent.sandboxNamespace" . | quote }}
+            - name: SANDBOX_TEMPLATE_NAME
+              value: {{ .Values.sandbox.templateName | quote }}
+            - name: MAX_CONCURRENT_PODS
+              value: {{ .Values.sandbox.maxConcurrentPods | quote }}
+            - name: SESSION_IDLE_TTL_SECONDS
+              value: {{ .Values.sandbox.sessionIdleTtlSeconds | quote }}
+            - name: HEALTH_PORT
+              value: {{ .Values.controller.port | quote }}
             {{- range $k, $v := .Values.controller.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}

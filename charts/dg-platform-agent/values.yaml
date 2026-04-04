@@ -1,75 +1,42 @@
-# Default values for dg-platform-agent.
+# nameOverride overrides the chart name in resource names
+nameOverride: ""
+# fullnameOverride fully overrides generated resource names
+fullnameOverride: ""
 
-global:
-  nameOverride: ""
-  fullnameOverride: ""
-
-# -- Agent Pod image config (not deployed by chart; Controller creates pods dynamically)
-agentPod:
-  image:
-    repository: ghcr.io/devopsgenie-ai/dg-agent-pod
-    tag: "0.1.0"
-
-# -- Controller: manages ephemeral agent pods
+# controller is the DG platform controller that connects to DevOps Genie server
 controller:
   image:
+    # controller.image.repository is the container image repository
     repository: ghcr.io/devopsgenie-ai/dg-controller
-    tag: ""  # defaults to Chart appVersion
+    # controller.image.tag overrides the image tag (defaults to Chart appVersion)
+    tag: ""
+    # controller.image.pullPolicy is the Kubernetes image pull policy
     pullPolicy: IfNotPresent
-    pullSecrets: []
+  # controller.replicaCount is the number of controller pod replicas
   replicaCount: 1
+  # controller.port is the health check HTTP port
   port: 8080
+  # controller.env is additional environment variables (non-sensitive only)
   env: {}
+  # controller.resources defines CPU/memory requests and limits
   resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
     requests:
       cpu: 100m
       memory: 128Mi
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-
-# -- WS Gateway: bridges frontend clients via Redis pub/sub
-wsGateway:
-  image:
-    repository: ghcr.io/devopsgenie-ai/dg-ws-gateway
-    tag: ""  # defaults to Chart appVersion
-    pullPolicy: IfNotPresent
-    pullSecrets: []
-  replicaCount: 1
-  port: 5004
-  env: {}
-  resources:
     limits:
       cpu: 500m
       memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  service:
-    type: ClusterIP
-    port: 5004
-  ingress:
-    enabled: false
-    className: ""
-    annotations: {}
-    hosts:
-      - host: ws-gateway.local
-        paths:
-          - path: /
-            pathType: Prefix
-    tls: []
+  # controller.livenessProbe checks if the controller process is alive
   livenessProbe:
     httpGet:
-      path: /health
+      path: /healthz
       port: http
     initialDelaySeconds: 10
     periodSeconds: 10
+  # controller.readinessProbe checks if the controller is connected to the server
   readinessProbe:
     httpGet:
-      path: /health
+      path: /readyz
       port: http
     initialDelaySeconds: 5
     periodSeconds: 5
@@ -77,47 +44,123 @@ wsGateway:
   tolerations: []
   affinity: {}
 
-# -- Redis connection URL (required)
-redis:
-  url: ""
+# server is the DevOps Genie platform server endpoints
+server:
+  # server.wsUrl is the WebSocket URL the controller connects to
+  wsUrl: "wss://platform.devopsgenie.com/ws/agent"
+  # server.authUrl is the authentication endpoint
+  authUrl: "https://platform.devopsgenie.com/api/v1/agents/auth"
 
-# -- Auth config
-auth:
-  agentJwtSecret: ""
+# agentPod defines the agent pod image spawned inside sandboxes
+agentPod:
+  image:
+    # agentPod.image.repository is the agent pod container image
+    repository: ghcr.io/devopsgenie-ai/dg-agent-pod
+    # agentPod.image.tag is the agent pod image tag
+    tag: "0.1.0"
 
-# -- RBAC: Role + RoleBinding (namespace-scoped) for Controller to manage agent pods
-rbac:
-  create: false
+# sandbox configures how the controller creates agent sandboxes
+sandbox:
+  # sandbox.namespace is the namespace where agent pods are created (defaults to release namespace)
+  namespace: ""
+  # sandbox.templateName is the SandboxTemplate CR name
+  templateName: "dg-agent-pod"
+  # sandbox.maxConcurrentPods limits simultaneous agent pods
+  maxConcurrentPods: 10
+  # sandbox.sessionIdleTtlSeconds is idle time before pod cleanup
+  sessionIdleTtlSeconds: 900
 
-serviceAccount:
+# sandboxTemplate controls the SandboxTemplate CR rendered by this chart
+sandboxTemplate:
+  # sandboxTemplate.create enables rendering the SandboxTemplate CR
   create: true
-  name: ""
+  # sandboxTemplate.resources for agent pod containers
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1"
+    limits:
+      memory: "4Gi"
+      cpu: "2"
+  # sandboxTemplate.workspaceSize is the emptyDir size for /work
+  workspaceSize: 10Gi
+  # sandboxTemplate.networkPolicy controls agent pod network isolation
+  networkPolicy:
+    # sandboxTemplate.networkPolicy.managed enables sandbox-managed egress policy
+    managed: true
 
-# -- Shared pod security context
+# sandboxWarmPool pre-creates idle sandbox pods for faster task start
+sandboxWarmPool:
+  # sandboxWarmPool.enabled enables the SandboxWarmPool CR
+  enabled: false
+  # sandboxWarmPool.replicas is the number of warm pods to maintain
+  replicas: 3
+
+# agentSandbox controls installation of the agent-sandbox controller (k8s-sigs)
+agentSandbox:
+  # agentSandbox.install enables deploying the agent-sandbox CRD controller
+  install: true
+  image:
+    # agentSandbox.image.repository is the upstream sandbox controller image
+    repository: registry.k8s.io/agent-sandbox/agent-sandbox-controller
+    # agentSandbox.image.tag pins the agent-sandbox controller version
+    tag: "v0.2.1"
+
+# ghcr configures GHCR image pull authentication
+ghcr:
+  # ghcr.existingSecret references a pre-created dockerconfigjson Secret
+  existingSecret: ""
+  # ghcr.externalSecret uses ESO to sync the pull secret from a secret store
+  externalSecret:
+    enabled: false
+    secretStoreRef:
+      name: ""
+      kind: ClusterSecretStore
+    remoteRef:
+      key: ""
+
+# rbac controls RBAC resource creation
+rbac:
+  # rbac.create enables ClusterRole + ClusterRoleBinding for sandbox management
+  create: true
+
+# serviceAccount controls ServiceAccount creation
+serviceAccount:
+  # serviceAccount.create enables ServiceAccount creation
+  create: true
+  # serviceAccount.name overrides the ServiceAccount name
+  name: ""
+  # serviceAccount.annotations adds annotations (e.g. IRSA role ARN)
+  annotations: {}
+
+# existingSecret references a Secret containing DG_AGENT_ID, DG_API_KEY
+existingSecret: ""
+
+# externalSecret uses ESO to sync agent credentials from a secret store
+externalSecret:
+  enabled: false
+  refreshInterval: 1h
+  secretStoreRef:
+    name: ""
+    kind: ClusterSecretStore
+  data: []
+  dataFrom: []
+
+# podSecurityContext is the pod-level security context
 podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   fsGroup: 1000
 
-# -- Shared container security context
+# securityContext is the container-level security context
 securityContext:
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   capabilities:
     drop:
       - ALL
 
-# -- Use an existing secret for sensitive env vars (REDIS_URL, AGENT_JWT_SECRET, etc.)
-existingSecret: ""
-
-# -- External Secrets Operator integration
-externalSecret:
-  enabled: false
-  secretStoreRef:
-    name: ""
-    kind: SecretStore
-  refreshInterval: 1h
-  target:
-    name: ""
-  data: []
-  dataFrom: []
+# networkPolicy controls the NetworkPolicy for agent pod isolation
+networkPolicy:
+  # networkPolicy.enabled creates a NetworkPolicy restricting agent pod traffic
+  enabled: true

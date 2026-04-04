@@ -1,15 +1,18 @@
 apiVersion: v2
 name: dg-platform-agent
-description: DevOps Genie agent platform stack — Controller, WS Gateway, and dynamic Agent Pods
+description: >-
+  DevOps Genie agent for client clusters — deploys the DG controller,
+  agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install
+  auto-connects to the DevOps Genie platform.
 type: application
-version: 0.1.0
+version: 0.2.0
 appVersion: "0.1.0"
 kubeVersion: ">=1.19.0-0"
 keywords:
   - devops-genie
   - platform-agent
   - controller
-  - ws-gateway
+  - agent-sandbox
   - ai
 home: https://github.com/devopsgenie-ai/devopsgenie-charts
 sources:
