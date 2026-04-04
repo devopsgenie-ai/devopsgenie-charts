@@ -74,6 +74,10 @@ sandbox:
 sandboxTemplate:
   # sandboxTemplate.create enables rendering the SandboxTemplate CR
   create: true
+  # sandboxTemplate.secretRef is the Secret name mounted as envFrom on agent pods (for LLM keys etc.)
+  secretRef: ""
+  # sandboxTemplate.env is additional non-sensitive env vars for agent pods
+  env: {}
   # sandboxTemplate.resources for agent pod containers
   resources:
     requests:

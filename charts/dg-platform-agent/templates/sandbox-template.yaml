@@ -24,6 +24,19 @@ spec:
           volumeMounts:
             - name: workspace
               mountPath: /work
+          {{- if .Values.sandboxTemplate.secretRef }}
+          envFrom:
+            - secretRef:
+                name: {{ .Values.sandboxTemplate.secretRef }}
+                optional: true
+          {{- end }}
+          {{- if .Values.sandboxTemplate.env }}
+          env:
+            {{- range $k, $v := .Values.sandboxTemplate.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          {{- end }}
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
