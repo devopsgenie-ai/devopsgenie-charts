@@ -44,6 +44,14 @@ spec:
             capabilities:
               drop:
                 - ALL
+      {{- with .Values.sandboxTemplate.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.sandboxTemplate.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: workspace
           emptyDir:

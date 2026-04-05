@@ -88,6 +88,10 @@ sandboxTemplate:
       cpu: "2"
   # sandboxTemplate.workspaceSize is the emptyDir size for /work
   workspaceSize: 10Gi
+  # sandboxTemplate.nodeSelector constrains agent pods to specific nodes
+  nodeSelector: {}
+  # sandboxTemplate.tolerations allows agent pods to schedule on tainted nodes
+  tolerations: []
   # sandboxTemplate.networkPolicy controls agent pod network isolation
   networkPolicy:
     # sandboxTemplate.networkPolicy.managed enables sandbox-managed egress policy
