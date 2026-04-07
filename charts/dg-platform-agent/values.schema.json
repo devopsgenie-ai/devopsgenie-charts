@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DevOps Genie Agent",
+  "description": "Values for dg-platform-agent Helm chart",
+  "type": "object",
+  "required": ["agentId", "apiKey"],
+  "properties": {
+    "agentId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "DevOps Genie agent identifier (provided by DG platform)"
+    },
+    "apiKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "DevOps Genie API key (provided by DG platform)"
+    },
+    "imageCredentials": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "GitHub PAT with read:packages scope for pulling private images"
+        },
+        "username": {
+          "type": "string",
+          "default": "devopsgenie-ai"
+        },
+        "existingSecret": {
+          "type": "string",
+          "description": "Name of a pre-created kubernetes.io/dockerconfigjson Secret"
+        }
+      }
+    },
+    "maxAgents": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10,
+      "description": "Maximum number of concurrent agent pods"
+    },
+    "server": {
+      "type": "object",
+      "properties": {
+        "wsUrl": {
+          "type": "string",
+          "pattern": "^wss?://"
+        },
+        "authUrl": {
+          "type": "string",
+          "pattern": "^https?://"
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "credentials": {
+        "properties": {
+          "existingSecret": { "minLength": 1 }
+        },
+        "required": ["existingSecret"]
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "agentId": { "minLength": 0 },
+      "apiKey": { "minLength": 0 }
+    }
+  }
+}

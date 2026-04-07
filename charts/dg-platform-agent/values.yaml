@@ -1,9 +1,101 @@
-# nameOverride overrides the chart name in resource names
-nameOverride: ""
-# fullnameOverride fully overrides generated resource names
-fullnameOverride: ""
+# ============================================================================
+# REQUIRED — You must set these values
+# ============================================================================
+#
+# SECURITY: Do NOT put real secrets in this file if you commit it to git.
+# Pass them via --set flags or a gitignored file instead:
+#
+#   helm install dg-agent devopsgenie/dg-agent \
+#     --namespace devopsgenie --create-namespace \
+#     --set agentId=ag_xxxxx \
+#     --set apiKey=dk_xxxxx \
+#     --set imageCredentials.token=ghp_xxxxx \
+#     --set llm.anthropicApiKey=sk-ant-xxxxx
+#
+# Or use a separate secrets file (add to .gitignore):
+#
+#   helm install dg-agent devopsgenie/dg-agent -f values.yaml -f secrets.yaml
+#
+# For production, use credentials.existingSecret or credentials.externalSecret
+# (see ADVANCED section below).
+# ============================================================================
 
-# controller is the DG platform controller that connects to DevOps Genie server
+# agentId is your DevOps Genie agent identifier (provided by DG platform)
+# Pass via: --set agentId=ag_xxxxx
+agentId: ""
+
+# apiKey is your DevOps Genie API key (provided by DG platform)
+# Pass via: --set apiKey=dk_xxxxx
+apiKey: ""
+
+# imageCredentials configures access to private DevOps Genie container images
+imageCredentials:
+  # imageCredentials.token is a GitHub PAT with read:packages scope (provided by DG)
+  # Pass via: --set imageCredentials.token=ghp_xxxxx
+  # The chart auto-creates a pull secret from this token.
+  # For external secret management, leave empty and use imageCredentials.existingSecret.
+  token: ""
+  # imageCredentials.username is the GitHub username for GHCR auth (rarely needs changing)
+  username: "devopsgenie-ai"
+  # imageCredentials.existingSecret references a pre-created kubernetes.io/dockerconfigjson Secret
+  existingSecret: ""
+
+# llm configures the LLM provider keys injected into agent pods.
+# The chart auto-creates a Secret from these values.
+# For external secret management, leave empty and use agentPod.existingSecret.
+llm:
+  # llm.provider selects which LLM provider agent pods use ("anthropic" or "openai")
+  provider: "anthropic"
+  # llm.model overrides the default model (leave empty for platform default)
+  model: ""
+  # llm.anthropicApiKey is the Anthropic API key for agent pods
+  # Pass via: --set llm.anthropicApiKey=sk-ant-xxxxx
+  anthropicApiKey: ""
+  # llm.openaiApiKey is the OpenAI API key for agent pods
+  # Pass via: --set llm.openaiApiKey=sk-xxxxx
+  openaiApiKey: ""
+
+# ============================================================================
+# OPTIONAL — Sensible defaults, override only if needed
+# ============================================================================
+
+# maxAgents is the maximum number of concurrent agent pods
+maxAgents: 10
+
+# server is the DevOps Genie platform server endpoints (override for on-prem or staging)
+server:
+  # server.wsUrl is the WebSocket URL the controller connects to
+  wsUrl: "wss://platform.devopsgenie.com/ws/agent"
+  # server.authUrl is the authentication endpoint
+  authUrl: "https://platform.devopsgenie.com/api/v1/agents/auth"
+
+# ============================================================================
+# ADVANCED — Only change if you know what you're doing
+# ============================================================================
+
+# credentials configures how agent credentials (DG_AGENT_ID, DG_API_KEY) are managed.
+# By default, the chart creates a Secret from agentId/apiKey above.
+# Set existingSecret to use a pre-created Secret, or enable externalSecret for ESO.
+credentials:
+  # credentials.existingSecret skips Secret creation and uses this Secret name instead
+  existingSecret: ""
+  # credentials.externalSecret uses External Secrets Operator to sync credentials
+  externalSecret:
+    enabled: false
+    refreshInterval: 1h
+    secretStoreRef:
+      name: ""
+      kind: ClusterSecretStore
+    data: []
+    #  - secretKey: DG_AGENT_ID
+    #    remoteRef:
+    #      key: devopsgenie/agent-id
+    #  - secretKey: DG_API_KEY
+    #    remoteRef:
+    #      key: devopsgenie/api-key
+    dataFrom: []
+
+# controller configures the DG controller deployment
 controller:
   image:
     # controller.image.repository is the container image repository
@@ -14,10 +106,6 @@ controller:
     pullPolicy: IfNotPresent
   # controller.replicaCount is the number of controller pod replicas
   replicaCount: 1
-  # controller.port is the health check HTTP port
-  port: 8080
-  # controller.env is additional environment variables (non-sensitive only)
-  env: {}
   # controller.resources defines CPU/memory requests and limits
   resources:
     requests:
@@ -26,59 +114,20 @@ controller:
     limits:
       cpu: 500m
       memory: 512Mi
-  # controller.livenessProbe checks if the controller process is alive
-  livenessProbe:
-    httpGet:
-      path: /healthz
-      port: http
-    initialDelaySeconds: 10
-    periodSeconds: 10
-  # controller.readinessProbe checks if the controller is connected to the server
-  readinessProbe:
-    httpGet:
-      path: /readyz
-      port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
+  # controller.env is additional environment variables (non-sensitive only)
+  env: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
 
-# server is the DevOps Genie platform server endpoints
-server:
-  # server.wsUrl is the WebSocket URL the controller connects to
-  wsUrl: "wss://platform.devopsgenie.com/ws/agent"
-  # server.authUrl is the authentication endpoint
-  authUrl: "https://platform.devopsgenie.com/api/v1/agents/auth"
-
-# agentPod defines the agent pod image spawned inside sandboxes
+# agentPod configures the agent pods spawned inside sandboxes
 agentPod:
   image:
     # agentPod.image.repository is the agent pod container image
     repository: ghcr.io/devopsgenie-ai/dg-agent-pod
     # agentPod.image.tag is the agent pod image tag
     tag: "0.1.0"
-
-# sandbox configures how the controller creates agent sandboxes
-sandbox:
-  # sandbox.namespace is the namespace where agent pods are created (defaults to release namespace)
-  namespace: ""
-  # sandbox.templateName is the SandboxTemplate CR name
-  templateName: "dg-agent-pod"
-  # sandbox.maxConcurrentPods limits simultaneous agent pods
-  maxConcurrentPods: 10
-  # sandbox.sessionIdleTtlSeconds is idle time before pod cleanup
-  sessionIdleTtlSeconds: 900
-
-# sandboxTemplate controls the SandboxTemplate CR rendered by this chart
-sandboxTemplate:
-  # sandboxTemplate.create enables rendering the SandboxTemplate CR
-  create: true
-  # sandboxTemplate.secretRef is the Secret name mounted as envFrom on agent pods (for LLM keys etc.)
-  secretRef: ""
-  # sandboxTemplate.env is additional non-sensitive env vars for agent pods
-  env: {}
-  # sandboxTemplate.resources for agent pod containers
+  # agentPod.resources for agent pod containers
   resources:
     requests:
       memory: "2Gi"
@@ -86,51 +135,43 @@ sandboxTemplate:
     limits:
       memory: "4Gi"
       cpu: "2"
-  # sandboxTemplate.workspaceSize is the emptyDir size for /work
+  # agentPod.workspaceSize is the emptyDir size for /work
   workspaceSize: 10Gi
-  # sandboxTemplate.nodeSelector constrains agent pods to specific nodes
+  # agentPod.commandTimeout is the max seconds a single command can run inside the agent
+  commandTimeout: 1800
+  # agentPod.existingSecret references a pre-created Secret for agent pod env vars.
+  # Use this instead of llm.* values when managing LLM keys externally.
+  # The Secret should contain ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.
+  existingSecret: ""
+  # agentPod.env is additional non-sensitive env vars for agent pods
+  env: {}
   nodeSelector: {}
-  # sandboxTemplate.tolerations allows agent pods to schedule on tainted nodes
   tolerations: []
-  # sandboxTemplate.networkPolicy controls agent pod network isolation
-  networkPolicy:
-    # sandboxTemplate.networkPolicy.managed enables sandbox-managed egress policy
-    managed: true
 
-# sandboxWarmPool pre-creates idle sandbox pods for faster task start
-sandboxWarmPool:
-  # sandboxWarmPool.enabled enables the SandboxWarmPool CR
+# sandbox configures advanced sandbox behavior
+sandbox:
+  # sandbox.sessionIdleTtlSeconds is idle time before pod cleanup
+  sessionIdleTtlSeconds: 900
+  # sandbox.networkPolicy controls agent pod network isolation
+  networkPolicy:
+    # sandbox.networkPolicy.enabled creates egress restrictions on agent pods
+    enabled: true
+
+# warmPool pre-creates idle sandbox pods for faster task start
+warmPool:
+  # warmPool.enabled enables the SandboxWarmPool CR
   enabled: false
-  # sandboxWarmPool.replicas is the number of warm pods to maintain
+  # warmPool.replicas is the number of warm pods to maintain
   replicas: 3
 
-# agentSandbox controls installation of the agent-sandbox controller (k8s-sigs)
+# agentSandbox controls installation of the upstream agent-sandbox controller (k8s-sigs)
 agentSandbox:
   # agentSandbox.install enables deploying the agent-sandbox CRD controller
+  # Set to false if you already have agent-sandbox installed in your cluster
   install: true
   image:
-    # agentSandbox.image.repository is the upstream sandbox controller image
     repository: registry.k8s.io/agent-sandbox/agent-sandbox-controller
-    # agentSandbox.image.tag pins the agent-sandbox controller version
     tag: "v0.2.1"
-
-# ghcr configures GHCR image pull authentication
-ghcr:
-  # ghcr.existingSecret references a pre-created dockerconfigjson Secret
-  existingSecret: ""
-  # ghcr.externalSecret uses ESO to sync the pull secret from a secret store
-  externalSecret:
-    enabled: false
-    secretStoreRef:
-      name: ""
-      kind: ClusterSecretStore
-    remoteRef:
-      key: ""
-
-# rbac controls RBAC resource creation
-rbac:
-  # rbac.create enables ClusterRole + ClusterRoleBinding for sandbox management
-  create: true
 
 # serviceAccount controls ServiceAccount creation
 serviceAccount:
@@ -141,34 +182,7 @@ serviceAccount:
   # serviceAccount.annotations adds annotations (e.g. IRSA role ARN)
   annotations: {}
 
-# existingSecret references a Secret containing DG_AGENT_ID, DG_API_KEY
-existingSecret: ""
-
-# externalSecret uses ESO to sync agent credentials from a secret store
-externalSecret:
-  enabled: false
-  refreshInterval: 1h
-  secretStoreRef:
-    name: ""
-    kind: ClusterSecretStore
-  data: []
-  dataFrom: []
-
-# podSecurityContext is the pod-level security context
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
-  fsGroup: 1000
-
-# securityContext is the container-level security context
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  capabilities:
-    drop:
-      - ALL
-
-# networkPolicy controls the NetworkPolicy for agent pod isolation
-networkPolicy:
-  # networkPolicy.enabled creates a NetworkPolicy restricting agent pod traffic
-  enabled: true
+# nameOverride overrides the chart name in resource names
+nameOverride: ""
+# fullnameOverride fully overrides generated resource names
+fullnameOverride: ""

@@ -1,13 +1,13 @@
-{{- if .Values.sandboxWarmPool.enabled -}}
+{{- if .Values.warmPool.enabled -}}
 apiVersion: extensions.agents.x-k8s.io/v1alpha1
 kind: SandboxWarmPool
 metadata:
-  name: {{ .Values.sandbox.templateName }}-warmpool
+  name: {{ include "dg-platform-agent.sandboxTemplateName" . }}-warmpool
   namespace: {{ include "dg-platform-agent.sandboxNamespace" . }}
   labels:
     {{- include "dg-platform-agent.labels" . | nindent 4 }}
 spec:
   templateRef:
-    name: {{ .Values.sandbox.templateName }}
-  replicas: {{ .Values.sandboxWarmPool.replicas }}
+    name: {{ include "dg-platform-agent.sandboxTemplateName" . }}
+  replicas: {{ .Values.warmPool.replicas }}
 {{- end }}

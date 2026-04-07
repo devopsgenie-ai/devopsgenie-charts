@@ -84,26 +84,44 @@ Controller image
 {{- end }}
 
 {{/*
-Secret name for agent credentials (DG_AGENT_ID, DG_API_KEY).
-Resolves: externalSecret target → existingSecret → empty.
+Sandbox template name — constant, not user-configurable
+*/}}
+{{- define "dg-platform-agent.sandboxTemplateName" -}}
+dg-agent-pod
+{{- end }}
+
+{{/*
+Sandbox namespace — always the release namespace
+*/}}
+{{- define "dg-platform-agent.sandboxNamespace" -}}
+{{- .Release.Namespace }}
+{{- end }}
+
+{{/*
+Credentials secret name.
+Priority: credentials.existingSecret > credentials.externalSecret (auto-named) > chart-created secret
 */}}
 {{- define "dg-platform-agent.secretName" -}}
-{{- if .Values.externalSecret.enabled -}}
-{{- include "dg-platform-agent.fullname" . }}
+{{- if .Values.credentials.existingSecret -}}
+{{- .Values.credentials.existingSecret }}
+{{- else if .Values.credentials.externalSecret.enabled -}}
+{{- printf "%s-credentials" (include "dg-platform-agent.fullname" .) }}
 {{- else -}}
-{{- .Values.existingSecret }}
+{{- printf "%s-credentials" (include "dg-platform-agent.fullname" .) }}
 {{- end }}
 {{- end }}
 
 {{/*
 GHCR pull secret name.
-Resolves: ghcr.externalSecret target → ghcr.existingSecret → empty.
+Priority: imageCredentials.existingSecret > chart-created secret from token > empty
 */}}
 {{- define "dg-platform-agent.ghcrSecretName" -}}
-{{- if .Values.ghcr.externalSecret.enabled -}}
+{{- if .Values.imageCredentials.existingSecret -}}
+{{- .Values.imageCredentials.existingSecret }}
+{{- else if .Values.imageCredentials.token -}}
 {{- printf "%s-ghcr" (include "dg-platform-agent.fullname" .) }}
 {{- else -}}
-{{- .Values.ghcr.existingSecret }}
+{{- "" }}
 {{- end }}
 {{- end }}
 
@@ -119,8 +137,13 @@ imagePullSecrets:
 {{- end }}
 
 {{/*
-Sandbox namespace — defaults to release namespace.
+Agent pod secret name.
+Priority: agentPod.existingSecret > chart-created secret
 */}}
-{{- define "dg-platform-agent.sandboxNamespace" -}}
-{{- .Values.sandbox.namespace | default .Release.Namespace }}
+{{- define "dg-platform-agent.agentPodSecretName" -}}
+{{- if .Values.agentPod.existingSecret -}}
+{{- .Values.agentPod.existingSecret }}
+{{- else -}}
+{{- printf "%s-agent-pod" (include "dg-platform-agent.fullname" .) }}
+{{- end }}
 {{- end }}

@@ -1,8 +1,7 @@
-{{- if .Values.sandboxTemplate.create -}}
 apiVersion: extensions.agents.x-k8s.io/v1alpha1
 kind: SandboxTemplate
 metadata:
-  name: {{ .Values.sandbox.templateName }}
+  name: {{ include "dg-platform-agent.sandboxTemplateName" . }}
   namespace: {{ include "dg-platform-agent.sandboxNamespace" . }}
   labels:
     {{- include "dg-platform-agent.labels" . | nindent 4 }}
@@ -20,19 +19,16 @@ spec:
           ports:
             - containerPort: 8080
           resources:
-            {{- toYaml .Values.sandboxTemplate.resources | nindent 12 }}
+            {{- toYaml .Values.agentPod.resources | nindent 12 }}
           volumeMounts:
             - name: workspace
               mountPath: /work
-          {{- if .Values.sandboxTemplate.secretRef }}
           envFrom:
             - secretRef:
-                name: {{ .Values.sandboxTemplate.secretRef }}
-                optional: true
-          {{- end }}
-          {{- if .Values.sandboxTemplate.env }}
+                name: {{ include "dg-platform-agent.agentPodSecretName" . }}
+          {{- if .Values.agentPod.env }}
           env:
-            {{- range $k, $v := .Values.sandboxTemplate.env }}
+            {{- range $k, $v := .Values.agentPod.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}
@@ -44,19 +40,19 @@ spec:
             capabilities:
               drop:
                 - ALL
-      {{- with .Values.sandboxTemplate.nodeSelector }}
+      {{- with .Values.agentPod.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.sandboxTemplate.tolerations }}
+      {{- with .Values.agentPod.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
         - name: workspace
           emptyDir:
-            sizeLimit: {{ .Values.sandboxTemplate.workspaceSize }}
-  {{- if .Values.sandboxTemplate.networkPolicy.managed }}
+            sizeLimit: {{ .Values.agentPod.workspaceSize }}
+  {{- if .Values.sandbox.networkPolicy.enabled }}
   networkPolicyManagement: Managed
   networkPolicy:
     egress:
@@ -98,4 +94,3 @@ spec:
   {{- else }}
   networkPolicyManagement: Unmanaged
   {{- end }}
-{{- end }}

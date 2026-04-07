@@ -20,25 +20,35 @@ spec:
       {{- include "dg-platform-agent.imagePullSecrets" . | nindent 6 }}
       serviceAccountName: {{ include "dg-platform-agent.serviceAccountName" . }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: controller
           image: {{ include "dg-platform-agent.controller.image" . }}
           imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
           securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
-              containerPort: {{ .Values.controller.port }}
+              containerPort: 8080
               protocol: TCP
-          {{- with .Values.controller.livenessProbe }}
           livenessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.controller.readinessProbe }}
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
           readinessProbe:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
           env:
             - name: DG_WS_URL
               value: {{ .Values.server.wsUrl | quote }}
@@ -47,13 +57,13 @@ spec:
             - name: SANDBOX_NAMESPACE
               value: {{ include "dg-platform-agent.sandboxNamespace" . | quote }}
             - name: SANDBOX_TEMPLATE_NAME
-              value: {{ .Values.sandbox.templateName | quote }}
+              value: {{ include "dg-platform-agent.sandboxTemplateName" . | quote }}
             - name: MAX_CONCURRENT_PODS
-              value: {{ .Values.sandbox.maxConcurrentPods | quote }}
+              value: {{ .Values.maxAgents | quote }}
             - name: SESSION_IDLE_TTL_SECONDS
               value: {{ .Values.sandbox.sessionIdleTtlSeconds | quote }}
             - name: HEALTH_PORT
-              value: {{ .Values.controller.port | quote }}
+              value: "8080"
             {{- range $k, $v := .Values.controller.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
@@ -61,11 +71,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "dg-platform-agent.fullname" . }}-agent-pod-config
-            {{- $secretName := include "dg-platform-agent.secretName" . }}
-            {{- if $secretName }}
             - secretRef:
-                name: {{ $secretName }}
-            {{- end }}
+                name: {{ include "dg-platform-agent.secretName" . }}
           resources:
             {{- toYaml .Values.controller.resources | nindent 12 }}
       {{- with .Values.controller.nodeSelector }}
