@@ -55,6 +55,42 @@ llm:
   # Pass via: --set llm.openaiApiKey=sk-xxxxx
   openaiApiKey: ""
 
+# vcs configures VCS (source control) access for agent pods.
+# Credentials and repo URLs are injected directly into agent pods as env vars.
+# The platform backend stores NOTHING VCS-related — all config lives here.
+vcs:
+  # vcs.provider selects the VCS provider ("github", "gitlab", or "bitbucket")
+  provider: "github"
+  # vcs.token is the VCS access token (GitHub PAT, GitLab PAT, Bitbucket app password)
+  # Pass via: --set vcs.token=ghp_xxxxx
+  # Token resolution in agent pod: VCS_TOKEN → GITHUB_TOKEN / GITLAB_TOKEN / BITBUCKET_TOKEN
+  # NOTE: If using GitHub App auth (below), leave this empty — the agent pod
+  # generates short-lived tokens automatically from the App credentials.
+  token: ""
+  # vcs.infrastructureRepoUrl is the HTTPS clone URL for the IaC repository
+  infrastructureRepoUrl: ""
+  # vcs.infrastructureRepoPath is the subdirectory within the repo (optional, e.g. "terraform/")
+  infrastructureRepoPath: ""
+  # vcs.deploymentRepoUrl is the HTTPS clone URL for the K8s manifest repository
+  deploymentRepoUrl: ""
+  # vcs.deploymentRepoPath is the subdirectory within the repo (optional, e.g. "k8s/")
+  deploymentRepoPath: ""
+  # ── GitHub App auth (alternative to PAT) ────────────────────────────────
+  # Like Atlantis: pass app-id + installation-id + private-key.
+  # The agent pod generates short-lived installation tokens (~1h) at startup.
+  # If these are set AND vcs.token is empty, the pod uses GitHub App auth.
+  githubApp:
+    # vcs.githubApp.id is the GitHub App ID (numeric)
+    # Pass via: --set vcs.githubApp.id=123456
+    id: ""
+    # vcs.githubApp.installationId is the installation ID for the target org/user
+    # Pass via: --set vcs.githubApp.installationId=78901234
+    installationId: ""
+    # vcs.githubApp.privateKey is the PEM-encoded RSA private key
+    # Pass via: --set-file vcs.githubApp.privateKey=path/to/app-key.pem
+    # Or store in your external secret manager and reference via agentPod.existingSecret
+    privateKey: ""
+
 # ============================================================================
 # OPTIONAL — Sensible defaults, override only if needed
 # ============================================================================
