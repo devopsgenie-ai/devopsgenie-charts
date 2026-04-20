@@ -9,8 +9,7 @@
 #     --namespace devopsgenie --create-namespace \
 #     --set agentId=ag_xxxxx \
 #     --set apiKey=dk_xxxxx \
-#     --set imageCredentials.token=ghp_xxxxx \
-#     --set llm.anthropicApiKey=sk-ant-xxxxx
+#     --set imageCredentials.token=ghp_xxxxx
 #
 # Or use a separate secrets file (add to .gitignore):
 #
@@ -39,21 +38,6 @@ imageCredentials:
   username: "devopsgenie-ai"
   # imageCredentials.existingSecret references a pre-created kubernetes.io/dockerconfigjson Secret
   existingSecret: ""
-
-# llm configures the LLM provider keys injected into agent pods.
-# The chart auto-creates a Secret from these values.
-# For external secret management, leave empty and use agentPod.existingSecret.
-llm:
-  # llm.provider selects which LLM provider agent pods use ("anthropic" or "openai")
-  provider: "anthropic"
-  # llm.model overrides the default model (leave empty for platform default)
-  model: ""
-  # llm.anthropicApiKey is the Anthropic API key for agent pods
-  # Pass via: --set llm.anthropicApiKey=sk-ant-xxxxx
-  anthropicApiKey: ""
-  # llm.openaiApiKey is the OpenAI API key for agent pods
-  # Pass via: --set llm.openaiApiKey=sk-xxxxx
-  openaiApiKey: ""
 
 # vcs configures VCS (source control) access for agent pods.
 # Credentials and repo URLs are injected directly into agent pods as env vars.
@@ -176,8 +160,10 @@ agentPod:
   # agentPod.commandTimeout is the max seconds a single command can run inside the agent
   commandTimeout: 1800
   # agentPod.existingSecret references a pre-created Secret for agent pod env vars.
-  # Use this instead of llm.* values when managing LLM keys externally.
-  # The Secret should contain ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.
+  # Use this for managing VCS keys and execution config externally.
+  # The Secret should contain VCS_TOKEN, COMMAND_TIMEOUT, etc.
+  # LLM credentials (LITELLM_API_KEY, LITELLM_BASE_URL) are auto-provisioned
+  # by the controller during auth — do NOT include them in this secret.
   existingSecret: ""
   # agentPod.env is additional non-sensitive env vars for agent pods
   env: {}
