@@ -1,18 +1,15 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "DevOps Genie Agent",
   "description": "Values for dg-platform-agent Helm chart",
   "type": "object",
-  "required": ["agentId", "apiKey"],
   "properties": {
     "agentId": {
       "type": "string",
-      "minLength": 1,
       "description": "DevOps Genie agent identifier (provided by DG platform)"
     },
     "apiKey": {
       "type": "string",
-      "minLength": 1,
       "description": "DevOps Genie API key (provided by DG platform)"
     },
     "imageCredentials": {
@@ -51,22 +48,127 @@
           "pattern": "^https?://"
         }
       }
-    }
-  },
-  "if": {
-    "properties": {
-      "credentials": {
-        "properties": {
-          "existingSecret": { "minLength": 1 }
+    },
+    "credentials": {
+      "type": "object",
+      "properties": {
+        "existingSecret": {
+          "type": "string",
+          "description": "Name of a pre-created Secret containing DG_AGENT_ID and DG_API_KEY"
         },
-        "required": ["existingSecret"]
+        "externalSecret": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "refreshInterval": {
+              "type": "string",
+              "default": "1h"
+            },
+            "secretStoreRef": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                }
+              }
+            },
+            "data": {
+              "type": "array"
+            },
+            "dataFrom": {
+              "type": "array"
+            }
+          }
+        }
       }
     }
   },
-  "then": {
-    "properties": {
-      "agentId": { "minLength": 0 },
-      "apiKey": { "minLength": 0 }
+  "allOf": [
+    {
+      "if": {
+        "not": {
+          "anyOf": [
+            {
+              "required": ["credentials"],
+              "properties": {
+                "credentials": {
+                  "required": ["existingSecret"],
+                  "properties": {
+                    "existingSecret": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            },
+            {
+              "required": ["credentials"],
+              "properties": {
+                "credentials": {
+                  "required": ["externalSecret"],
+                  "properties": {
+                    "externalSecret": {
+                      "required": ["enabled"],
+                      "properties": {
+                        "enabled": { "const": true }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "then": {
+        "required": ["agentId", "apiKey"],
+        "properties": {
+          "agentId": { "minLength": 1 },
+          "apiKey": { "minLength": 1 }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["credentials"],
+        "properties": {
+          "credentials": {
+            "required": ["externalSecret"],
+            "properties": {
+              "externalSecret": {
+                "required": ["enabled"],
+                "properties": {
+                  "enabled": { "const": true }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "credentials": {
+            "properties": {
+              "externalSecret": {
+                "required": ["secretStoreRef"],
+                "properties": {
+                  "secretStoreRef": {
+                    "required": ["name", "kind"],
+                    "properties": {
+                      "name": { "minLength": 1 },
+                      "kind": { "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
-  }
+  ]
 }

@@ -35,7 +35,7 @@ Configuration:
 {{- if and (not .Values.agentId) (not .Values.credentials.existingSecret) (not .Values.credentials.externalSecret.enabled) }}
 
 WARNING: No agent credentials configured!
-Set agentId and apiKey, or provide credentials.existingSecret.
+Set agentId and apiKey, or provide credentials.existingSecret/credentials.externalSecret.
 The controller will fail to authenticate without credentials.
 {{- end }}
 

@@ -44,8 +44,8 @@ kubectl create secret generic dg-platform-agent \
 
 # Install
 helm install dg-agent devopsgenie/dg-platform-agent \
-  --set existingSecret=dg-platform-agent \
-  --set ghcr.existingSecret=ghcr \
+  --set credentials.existingSecret=dg-platform-agent \
+  --set imageCredentials.existingSecret=ghcr \
   --namespace devopsgenie
 ```
 

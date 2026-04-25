@@ -15,11 +15,7 @@ on:
           - minor
           - major
           - none
-        default: patch
-      chart_version:
-        description: 'Chart version (e.g. 0.1.0). Leave empty to use/bump version from Chart.yaml.'
-        required: false
-        type: string
+        default: none
       release_name:
         description: 'Release title (default: dg-platform-agent-<version>)'
         required: false
@@ -45,8 +41,42 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.14.0"
+
+      - name: Validate chart
+        run: |
+          CHART_PATH="charts/${{ env.CHART }}"
+
+          helm lint "$CHART_PATH" \
+            --set credentials.existingSecret=test-secret \
+            --set imageCredentials.existingSecret=ghcr
+
+          helm template test "$CHART_PATH" \
+            --set credentials.existingSecret=test-secret \
+            --set imageCredentials.existingSecret=ghcr >/dev/null
+
+          helm template test "$CHART_PATH" \
+            --set credentials.existingSecret=test-secret \
+            --set imageCredentials.existingSecret=ghcr \
+            --set agentSandbox.install=false >/dev/null
+
+          helm template test "$CHART_PATH" \
+            --set credentials.externalSecret.enabled=true \
+            --set credentials.externalSecret.secretStoreRef.name=aws-sm \
+            --set credentials.externalSecret.secretStoreRef.kind=ClusterSecretStore \
+            --set imageCredentials.existingSecret=ghcr >/dev/null
+
+          if helm template test "$CHART_PATH" >/tmp/dg-platform-agent-schema.out 2>&1; then
+            echo "Expected chart render without credentials to fail"
+            exit 1
+          fi
+          grep -E "agentId|apiKey" /tmp/dg-platform-agent-schema.out
+
       - name: Bump version in Chart.yaml
-        if: github.event.inputs.chart_version == '' && github.event.inputs.bump != 'none'
+        if: github.event.inputs.bump != 'none'
         run: |
           CHART="${{ env.CHART }}"
           CHART_PATH="charts/${CHART}/Chart.yaml"
@@ -59,6 +89,11 @@ jobs:
             *) exit 1 ;;
           esac
           NEXT="${major}.${minor}.${patch}"
+          TAG="${CHART}-${NEXT}"
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::Release tag already exists: ${TAG}"
+            exit 1
+          fi
           sed -i "s/^version:.*/version: ${NEXT}/" "$CHART_PATH"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -75,19 +110,18 @@ jobs:
             echo "::error::Chart not found: $CHART_PATH"
             exit 1
           fi
-          if [[ -n "${{ github.event.inputs.chart_version }}" ]]; then
-            V="${{ github.event.inputs.chart_version }}"
-          else
-            V=$(grep '^version:' "$CHART_PATH/Chart.yaml" | sed 's/.*version: *//' | tr -d '"\n\r ')
-          fi
+          V=$(grep '^version:' "$CHART_PATH/Chart.yaml" | sed 's/.*version: *//' | tr -d '"\n\r ')
           echo "version=$V" >> $GITHUB_OUTPUT
           echo "tag=${CHART}-${V}" >> $GITHUB_OUTPUT
           echo "chart=$CHART" >> $GITHUB_OUTPUT
 
-      - name: Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: "v3.14.0"
+      - name: Ensure release tag does not exist
+        run: |
+          TAG="${{ steps.chart-version.outputs.tag }}"
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            echo "::error::Release tag already exists: ${TAG}"
+            exit 1
+          fi
 
       - name: Package chart
         run: |

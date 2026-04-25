@@ -33,8 +33,8 @@ kubectl create secret generic dg-platform-agent \
 
 # 3. Install the chart
 helm install dg-agent ./charts/dg-platform-agent \
-  --set existingSecret=dg-platform-agent \
-  --set ghcr.existingSecret=ghcr \
+  --set credentials.existingSecret=dg-platform-agent \
+  --set imageCredentials.existingSecret=ghcr \
   --namespace devopsgenie
 ```
 
@@ -61,43 +61,46 @@ accepting tasks.
 | **Agent Pod** | | |
 | `agentPod.image.repository` | Agent pod image | `ghcr.io/devopsgenie-ai/dg-agent-pod` |
 | `agentPod.image.tag` | Agent pod tag | `0.1.0` |
+| `agentPod.existingSecret` | Pre-created Secret for agent pod runtime/VCS env | `""` |
+| `agentPod.resources` | Agent pod resources | `1cpu/2Gi` req, `2cpu/4Gi` limit |
+| `agentPod.workspaceSize` | Agent workspace volume | `10Gi` |
+| `agentPod.commandTimeout` | Max seconds a command may run | `1800` |
+| `agentPod.env` | Extra non-sensitive env vars | `{}` |
 | **Sandbox** | | |
-| `sandbox.namespace` | Agent pod namespace | Release namespace |
-| `sandbox.templateName` | SandboxTemplate name | `dg-agent-pod` |
-| `sandbox.maxConcurrentPods` | Max concurrent agent pods | `10` |
+| `maxAgents` | Max concurrent agent pods | `10` |
 | `sandbox.sessionIdleTtlSeconds` | Idle cleanup timeout | `900` |
-| **SandboxTemplate** | | |
-| `sandboxTemplate.create` | Create the SandboxTemplate CR | `true` |
-| `sandboxTemplate.resources` | Agent pod resources | `1cpu/2Gi` req, `2cpu/4Gi` limit |
-| `sandboxTemplate.workspaceSize` | Agent workspace volume | `10Gi` |
-| `sandboxTemplate.networkPolicy.managed` | Sandbox-managed egress policy | `true` |
+| `sandbox.networkPolicy.enabled` | Agent pod NetworkPolicy | `true` |
 | **Warm Pool** | | |
-| `sandboxWarmPool.enabled` | Enable SandboxWarmPool | `false` |
-| `sandboxWarmPool.replicas` | Pre-warmed pods | `3` |
+| `warmPool.enabled` | Enable SandboxWarmPool | `false` |
+| `warmPool.replicas` | Pre-warmed pods | `3` |
 | **Agent Sandbox** | | |
 | `agentSandbox.install` | Install agent-sandbox controller | `true` |
 | `agentSandbox.image.repository` | Sandbox controller image | `registry.k8s.io/agent-sandbox/agent-sandbox-controller` |
 | `agentSandbox.image.tag` | Sandbox controller version | `v0.2.1` |
 | **GHCR** | | |
-| `ghcr.existingSecret` | Pre-created dockerconfigjson Secret | `""` |
-| `ghcr.externalSecret.enabled` | Use ESO for GHCR pull secret | `false` |
-| `ghcr.externalSecret.secretStoreRef.name` | SecretStore name | `""` |
-| `ghcr.externalSecret.remoteRef.key` | Remote secret key | `""` |
-| **RBAC** | | |
-| `rbac.create` | Create ClusterRole for sandbox CRUD | `true` |
+| `imageCredentials.token` | GitHub PAT with `read:packages` scope | `""` |
+| `imageCredentials.username` | GHCR username | `devopsgenie-ai` |
+| `imageCredentials.existingSecret` | Pre-created dockerconfigjson Secret | `""` |
 | **ServiceAccount** | | |
 | `serviceAccount.create` | Create ServiceAccount | `true` |
 | `serviceAccount.name` | SA name override | `""` |
 | `serviceAccount.annotations` | SA annotations (e.g. IRSA) | `{}` |
 | **Credentials** | | |
-| `existingSecret` | Secret with `DG_AGENT_ID` + `DG_API_KEY` | `""` |
-| `externalSecret.enabled` | Use ESO for agent credentials | `false` |
-| `externalSecret.secretStoreRef.name` | SecretStore name | `""` |
-| `externalSecret.data` | ESO data mappings | `[]` |
-| **Security** | | |
-| `podSecurityContext` | Pod security context | `runAsNonRoot, uid 1000` |
-| `securityContext` | Container security context | `readOnlyRootFilesystem: true, drop ALL` |
-| `networkPolicy.enabled` | Agent pod NetworkPolicy | `true` |
+| `agentId` | DevOps Genie agent identifier | `""` |
+| `apiKey` | DevOps Genie API key | `""` |
+| `credentials.existingSecret` | Secret with `DG_AGENT_ID` + `DG_API_KEY` | `""` |
+| `credentials.externalSecret.enabled` | Use ESO for agent credentials | `false` |
+| `credentials.externalSecret.secretStoreRef.name` | SecretStore name | `""` |
+| `credentials.externalSecret.secretStoreRef.kind` | SecretStore kind | `ClusterSecretStore` |
+| `credentials.externalSecret.data` | ESO data mappings | `[]` |
+| **VCS** | | |
+| `vcs.provider` | VCS provider (`github`, `gitlab`, `bitbucket`) | `github` |
+| `vcs.token` | VCS access token | `""` |
+| `vcs.infrastructureRepoUrl` | HTTPS clone URL for IaC repository | `""` |
+| `vcs.infrastructureRepoPath` | IaC repository subdirectory | `""` |
+| `vcs.deploymentRepoUrl` | HTTPS clone URL for deployment repository | `""` |
+| `vcs.deploymentRepoPath` | Deployment repository subdirectory | `""` |
+| `vcs.githubApp.*` | GitHub App auth settings | `""` |
 
 ## GHCR Setup
 
@@ -114,40 +117,36 @@ kubectl create secret docker-registry ghcr \
   -n devopsgenie
 ```
 
-Then set `ghcr.existingSecret=ghcr` in your values.
+Then set `imageCredentials.existingSecret=ghcr` in your values.
 
 ### Option 2: External Secrets Operator
 
-Store the dockerconfigjson in your secret manager, then:
+Create a `kubernetes.io/dockerconfigjson` Secret with External Secrets Operator
+outside this chart, then reference it:
 
 ```yaml
-ghcr:
-  externalSecret:
-    enabled: true
-    secretStoreRef:
-      name: aws-secretsmanager-secrets-store
-      kind: ClusterSecretStore
-    remoteRef:
-      key: prod/ghcr-pull-secret
+imageCredentials:
+  existingSecret: ghcr
 ```
 
 ## External Secrets for Agent Credentials
 
 ```yaml
-externalSecret:
-  enabled: true
-  secretStoreRef:
-    name: aws-secretsmanager-secrets-store
-    kind: ClusterSecretStore
-  data:
-    - secretKey: DG_AGENT_ID
-      remoteRef:
-        key: prod/dg-platform-agent
-        property: agent_id
-    - secretKey: DG_API_KEY
-      remoteRef:
-        key: prod/dg-platform-agent
-        property: api_key
+credentials:
+  externalSecret:
+    enabled: true
+    secretStoreRef:
+      name: aws-secretsmanager-secrets-store
+      kind: ClusterSecretStore
+    data:
+      - secretKey: DG_AGENT_ID
+        remoteRef:
+          key: prod/dg-platform-agent
+          property: agent_id
+      - secretKey: DG_API_KEY
+        remoteRef:
+          key: prod/dg-platform-agent
+          property: api_key
 ```
 
 ## Agent Sandbox
