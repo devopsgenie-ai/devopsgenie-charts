@@ -69,6 +69,13 @@ jobs:
             --set credentials.externalSecret.secretStoreRef.kind=ClusterSecretStore \
             --set imageCredentials.existingSecret=ghcr >/dev/null
 
+          helm template test "$CHART_PATH" \
+            --set credentials.existingSecret=test-secret \
+            --set imageCredentials.existingSecret=ghcr \
+            --set warmPool.enabled=false \
+            --set-string controller.env.WARM_POOL_SIZE=2 \
+            --set-string controller.env.SANDBOX_CONNECTION_MODE=direct >/dev/null
+
           if helm template test "$CHART_PATH" >/tmp/dg-platform-agent-schema.out 2>&1; then
             echo "Expected chart render without credentials to fail"
             exit 1

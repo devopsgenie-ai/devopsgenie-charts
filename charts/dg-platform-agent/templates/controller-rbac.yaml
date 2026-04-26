@@ -1,7 +1,8 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: {{ include "dg-platform-agent.fullname" . }}-controller
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "dg-platform-agent.controller.labels" . | nindent 4 }}
 rules:
@@ -9,27 +10,22 @@ rules:
     resources: [sandboxes, sandboxtemplates]
     verbs: [get, list, watch, create, delete]
   - apiGroups: [extensions.agents.x-k8s.io]
-    resources: [sandboxclaims, sandboxwarmpools]
-    verbs: [get, list, watch, create, delete]
+    resources: [sandboxclaims]
+    verbs: [get, list, watch, create, delete, patch]
   - apiGroups: [""]
     resources: [pods]
     verbs: [get, list, watch]
-  - apiGroups: [""]
-    resources: [services, services/proxy]
-    verbs: [get, list, create]
-  - apiGroups: [""]
-    resources: [pods/portforward]
-    verbs: [create]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: {{ include "dg-platform-agent.fullname" . }}-controller
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "dg-platform-agent.controller.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: {{ include "dg-platform-agent.fullname" . }}-controller
 subjects:
   - kind: ServiceAccount

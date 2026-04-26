@@ -6,6 +6,8 @@ metadata:
     {{- include "dg-platform-agent.controller.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.controller.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 6 }}

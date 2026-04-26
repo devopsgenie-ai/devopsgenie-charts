@@ -184,7 +184,7 @@ warmPool:
   # warmPool.enabled enables the SandboxWarmPool CR
   enabled: false
   # warmPool.replicas is the number of warm pods to maintain
-  replicas: 3
+  replicas: 2
 
 # agentSandbox controls installation of the upstream agent-sandbox controller (k8s-sigs)
 agentSandbox:

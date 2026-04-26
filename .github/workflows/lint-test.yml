@@ -72,6 +72,16 @@ jobs:
             --set imageCredentials.existingSecret=ghcr
           echo "Template rendered successfully (ESO enabled)"
 
+      - name: Template dg-platform-agent (controller-owned warm pool)
+        run: |
+          helm template test charts/dg-platform-agent \
+            --set credentials.existingSecret=test-secret \
+            --set imageCredentials.existingSecret=ghcr \
+            --set warmPool.enabled=false \
+            --set-string controller.env.WARM_POOL_SIZE=2 \
+            --set-string controller.env.SANDBOX_CONNECTION_MODE=direct
+          echo "Template rendered successfully (controller-owned warm pool)"
+
       - name: Validate credentials are required
         run: |
           if helm template test charts/dg-platform-agent >/tmp/dg-platform-agent-schema.out 2>&1; then
