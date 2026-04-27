@@ -159,6 +159,12 @@ agentPod:
   workspaceSize: 10Gi
   # agentPod.commandTimeout is the max seconds a single command can run inside the agent
   commandTimeout: 1800
+  # agentPod.llm configures LiteLLM client runtime behavior inside agent pods.
+  llm:
+    # agentPod.llm.timeoutSeconds is the per-request LiteLLM client timeout.
+    timeoutSeconds: 120
+    # agentPod.llm.maxRetries is the number of LiteLLM client retries.
+    maxRetries: 2
   # agentPod.existingSecret references a pre-created Secret for agent pod env vars.
   # Use this for managing VCS keys and execution config externally.
   # The Secret should contain VCS_TOKEN, COMMAND_TIMEOUT, etc.

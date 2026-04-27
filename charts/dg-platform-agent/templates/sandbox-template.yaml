@@ -1,5 +1,11 @@
 apiVersion: extensions.agents.x-k8s.io/v1alpha1
 kind: SandboxTemplate
+{{- if hasKey .Values.agentPod.env "AGENT_LLM_TIMEOUT_SECONDS" }}
+{{- fail "agentPod.env.AGENT_LLM_TIMEOUT_SECONDS is reserved; use agentPod.llm.timeoutSeconds" }}
+{{- end }}
+{{- if hasKey .Values.agentPod.env "AGENT_LLM_MAX_RETRIES" }}
+{{- fail "agentPod.env.AGENT_LLM_MAX_RETRIES is reserved; use agentPod.llm.maxRetries" }}
+{{- end }}
 metadata:
   name: {{ include "dg-platform-agent.sandboxTemplateName" . }}
   namespace: {{ include "dg-platform-agent.sandboxNamespace" . }}
@@ -26,8 +32,12 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ include "dg-platform-agent.agentPodSecretName" . }}
-          {{- if .Values.agentPod.env }}
           env:
+            - name: AGENT_LLM_TIMEOUT_SECONDS
+              value: {{ .Values.agentPod.llm.timeoutSeconds | default 120 | quote }}
+            - name: AGENT_LLM_MAX_RETRIES
+              value: {{ .Values.agentPod.llm.maxRetries | default 2 | quote }}
+          {{- if .Values.agentPod.env }}
             {{- range $k, $v := .Values.agentPod.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
