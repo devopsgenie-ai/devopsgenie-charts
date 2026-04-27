@@ -65,7 +65,11 @@ accepting tasks.
 | `agentPod.resources` | Agent pod resources | `1cpu/2Gi` req, `2cpu/4Gi` limit |
 | `agentPod.workspaceSize` | Agent workspace volume | `10Gi` |
 | `agentPod.commandTimeout` | Max seconds a command may run | `1800` |
+| `agentPod.llm.timeoutSeconds` | LiteLLM client request timeout | `120` |
+| `agentPod.llm.maxRetries` | LiteLLM client retry count | `2` |
 | `agentPod.env` | Extra non-sensitive env vars | `{}` |
+
+`agentPod.llm.timeoutSeconds` must be at least `1`; `agentPod.llm.maxRetries` must be at least `0`. Use these keys instead of setting `AGENT_LLM_TIMEOUT_SECONDS` or `AGENT_LLM_MAX_RETRIES` directly in `agentPod.env`.
 | **Sandbox** | | |
 | `maxAgents` | Max concurrent agent pods | `10` |
 | `sandbox.sessionIdleTtlSeconds` | Idle cleanup timeout | `900` |

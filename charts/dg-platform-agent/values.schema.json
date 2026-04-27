@@ -58,6 +58,15 @@
         },
         "env": {
           "type": "object",
+          "description": "Additional non-sensitive env vars for agent pods. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "AGENT_LLM_TIMEOUT_SECONDS",
+                "AGENT_LLM_MAX_RETRIES"
+              ]
+            }
+          },
           "additionalProperties": {
             "type": "string"
           }
@@ -68,6 +77,34 @@
             "repository": { "type": "string" },
             "tag": { "type": "string" },
             "pullPolicy": { "type": "string" }
+          }
+        }
+      }
+    },
+    "agentPod": {
+      "type": "object",
+      "properties": {
+        "llm": {
+          "type": "object",
+          "properties": {
+            "timeoutSeconds": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 120,
+              "description": "Per-request LiteLLM client timeout in seconds"
+            },
+            "maxRetries": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 2,
+              "description": "LiteLLM client retry count"
+            }
+          }
+        },
+        "env": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
           }
         }
       }
