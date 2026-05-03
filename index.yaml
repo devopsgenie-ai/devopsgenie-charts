@@ -3,7 +3,7 @@ entries:
   devops-genie:
   - apiVersion: v2
     appVersion: 0.1.5
-    created: "2026-05-01T17:51:43.219034149Z"
+    created: "2026-05-03T07:16:25.715752296Z"
     description: devops genie ai assistant agent
     digest: e4fa12643cf604b8eb606e348d44c527338e729537e2da129c56b123624c21e1
     home: https://github.com/devopsgenie-ai/devopsgenie-charts
@@ -46,7 +46,7 @@ entries:
   devops-genie-sre-agent:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.220431746Z"
+    created: "2026-05-03T07:16:25.717207473Z"
     description: DevOps Genie SRE Agent - AI agent for cloud troubleshooting and alert
       investigation (Helm chart)
     digest: bc85adadec97bbfa3103b4dd7efbdb6a7d553b1157477944b624142ba3ecde89
@@ -95,7 +95,32 @@ entries:
   dg-platform-agent:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.229212304Z"
+    created: "2026-05-03T07:16:25.72795872Z"
+    description: DevOps Genie agent for client clusters — deploys the DG controller,
+      agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
+      to the DevOps Genie platform.
+    digest: 749ce92bbacab8e0b9ac866648aa84323237deb4e08194652fd6c46097fb78ca
+    home: https://github.com/devopsgenie-ai/devopsgenie-charts
+    keywords:
+    - devops-genie
+    - platform-agent
+    - controller
+    - agent-sandbox
+    - ai
+    kubeVersion: '>=1.19.0-0'
+    maintainers:
+    - name: DevOps Genie
+      url: https://github.com/devopsgenie-ai
+    name: dg-platform-agent
+    sources:
+    - https://github.com/devopsgenie-ai/devopsgenie-charts
+    type: application
+    urls:
+    - https://devopsgenie-ai.github.io/devopsgenie-charts/dg-platform-agent-0.3.7.tgz
+    version: 0.3.7
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-05-03T07:16:25.725985945Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -120,7 +145,7 @@ entries:
     version: 0.3.6
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.227923988Z"
+    created: "2026-05-03T07:16:25.724757884Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -145,7 +170,7 @@ entries:
     version: 0.3.5
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.226087116Z"
+    created: "2026-05-03T07:16:25.72349644Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -170,7 +195,7 @@ entries:
     version: 0.3.3
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.224841284Z"
+    created: "2026-05-03T07:16:25.72161305Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -195,7 +220,7 @@ entries:
     version: 0.3.2
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.223518787Z"
+    created: "2026-05-03T07:16:25.720354822Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -220,7 +245,7 @@ entries:
     version: 0.3.1
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-05-01T17:51:43.221720292Z"
+    created: "2026-05-03T07:16:25.719088118Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -243,4 +268,4 @@ entries:
     urls:
     - https://devopsgenie-ai.github.io/devopsgenie-charts/dg-platform-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-05-01T17:51:43.218265762Z"
+generated: "2026-05-03T07:16:25.714939173Z"
