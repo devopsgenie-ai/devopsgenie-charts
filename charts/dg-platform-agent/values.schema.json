@@ -90,7 +90,7 @@
             "timeoutSeconds": {
               "type": "integer",
               "minimum": 1,
-              "default": 120,
+              "default": 300,
               "description": "Per-request LiteLLM client timeout in seconds"
             },
             "maxRetries": {

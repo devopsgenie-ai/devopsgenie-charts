@@ -162,7 +162,7 @@ agentPod:
   # agentPod.llm configures LiteLLM client runtime behavior inside agent pods.
   llm:
     # agentPod.llm.timeoutSeconds is the per-request LiteLLM client timeout.
-    timeoutSeconds: 120
+    timeoutSeconds: 300
     # agentPod.llm.maxRetries is the number of LiteLLM client retries.
     maxRetries: 2
   # agentPod.existingSecret references a pre-created Secret for agent pod env vars.

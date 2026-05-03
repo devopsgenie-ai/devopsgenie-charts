@@ -65,7 +65,7 @@ accepting tasks.
 | `agentPod.resources` | Agent pod resources | `1cpu/2Gi` req, `2cpu/4Gi` limit |
 | `agentPod.workspaceSize` | Agent workspace volume | `10Gi` |
 | `agentPod.commandTimeout` | Max seconds a command may run | `1800` |
-| `agentPod.llm.timeoutSeconds` | LiteLLM client request timeout | `120` |
+| `agentPod.llm.timeoutSeconds` | LiteLLM client request timeout | `300` |
 | `agentPod.llm.maxRetries` | LiteLLM client retry count | `2` |
 | `agentPod.env` | Extra non-sensitive env vars | `{}` |
 

@@ -34,7 +34,7 @@ spec:
                 name: {{ include "dg-platform-agent.agentPodSecretName" . }}
           env:
             - name: AGENT_LLM_TIMEOUT_SECONDS
-              value: {{ .Values.agentPod.llm.timeoutSeconds | default 120 | quote }}
+              value: {{ .Values.agentPod.llm.timeoutSeconds | default 300 | quote }}
             - name: AGENT_LLM_MAX_RETRIES
               value: {{ .Values.agentPod.llm.maxRetries | default 2 | quote }}
           {{- if .Values.agentPod.env }}
