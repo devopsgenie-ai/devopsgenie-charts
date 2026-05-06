@@ -66,6 +66,17 @@ spec:
               value: {{ .Values.sandbox.sessionIdleTtlSeconds | quote }}
             - name: HEALTH_PORT
               value: "8080"
+            # ── Capability flags ─────────────────────────────────────────
+            # Derived from VCS configuration so the controller can report
+            # its enabled capabilities to the platform on connect.
+            - name: DG_CAPABILITY_TERRAFORM_CODEGEN
+              value: {{ if and .Values.vcs.token .Values.vcs.infrastructureRepoPath }}"true"{{ else if and .Values.vcs.githubApp.id .Values.vcs.infrastructureRepoPath }}"true"{{ else }}"false"{{ end }}
+            - name: DG_CAPABILITY_K8S_DEPLOYMENT
+              value: {{ if and .Values.vcs.token .Values.vcs.deploymentRepoPath }}"true"{{ else if and .Values.vcs.githubApp.id .Values.vcs.deploymentRepoPath }}"true"{{ else }}"false"{{ end }}
+            - name: DG_CAPABILITY_CICD_PIPELINE
+              value: {{ if .Values.vcs.token }}"true"{{ else if .Values.vcs.githubApp.id }}"true"{{ else }}"false"{{ end }}
+            - name: DG_CAPABILITY_COST_OPTIMIZATION
+              value: "true"
             {{- range $k, $v := .Values.controller.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
