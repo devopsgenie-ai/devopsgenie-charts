@@ -14,32 +14,61 @@ DevOps Genie agent for client clusters. Single `helm install` deploys:
 - Agent credentials (`DG_AGENT_ID` + `DG_API_KEY`) from your DevOps Genie dashboard
 - GHCR pull secret for private images (see [GHCR Setup](#ghcr-setup))
 
-## Quickstart
+## Quick Start
+
+Add the DevOps Genie chart repository:
 
 ```bash
-# 1. Create the GHCR pull secret (one-time)
-kubectl create namespace devopsgenie
-kubectl create secret docker-registry ghcr \
-  --docker-server=ghcr.io \
-  --docker-username=<github-username> \
-  --docker-password=<ghcr-pat> \
-  -n devopsgenie
-
-# 2. Create the agent credentials secret
-kubectl create secret generic dg-platform-agent \
-  --from-literal=DG_AGENT_ID=<your-agent-id> \
-  --from-literal=DG_API_KEY=<your-api-key> \
-  -n devopsgenie
-
-# 3. Install the chart
-helm install dg-agent ./charts/dg-platform-agent \
-  --set credentials.existingSecret=dg-platform-agent \
-  --set imageCredentials.existingSecret=ghcr \
-  --namespace devopsgenie
+helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts
+helm repo update
 ```
+
+Install with credentials supplied directly:
+
+```bash
+helm install dg-agent devopsgenie/dg-platform-agent \
+  --namespace devopsgenie --create-namespace \
+  --set agentId=YOUR_AGENT_ID \
+  --set apiKey=YOUR_API_KEY \
+  --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
+```
+
+Or, with credentials pre-created as Kubernetes Secrets (recommended for production — see [Secret Management](#secret-management)):
+
+```bash
+helm install dg-agent devopsgenie/dg-platform-agent \
+  --namespace devopsgenie --create-namespace \
+  --set credentials.existingSecret=dg-platform-agent \
+  --set imageCredentials.existingSecret=ghcr
+```
+
+> **For chart contributors:** The chart can also be installed from a local
+> clone with `helm install dg-agent ./charts/dg-platform-agent ...`.
 
 The controller will authenticate with the DevOps Genie platform and begin
 accepting tasks.
+
+## Upgrading
+
+Helm intentionally does not update CRDs on `helm upgrade`. When the chart
+ships CRD changes (rare, but possible), you must apply CRD updates manually
+before running `helm upgrade`:
+
+```bash
+kubectl apply -f \
+  https://raw.githubusercontent.com/devopsgenie-ai/devopsgenie-charts/main/charts/dg-platform-agent/crds/
+```
+
+Then proceed with the upgrade:
+
+```bash
+helm repo update
+helm upgrade dg-agent devopsgenie/dg-platform-agent --namespace devopsgenie
+```
+
+Check the chart's `CHANGELOG` (or release notes) before upgrading across
+major versions — they may include breaking changes to values keys or
+required migrations.
 
 ## Values
 
@@ -52,7 +81,6 @@ accepting tasks.
 | `controller.image.tag` | Image tag (defaults to `appVersion`) | `""` |
 | `controller.image.pullPolicy` | Pull policy | `IfNotPresent` |
 | `controller.replicaCount` | Replicas | `1` |
-| `controller.port` | Health check port | `8080` |
 | `controller.env` | Extra env vars (non-sensitive) | `{}` |
 | `controller.resources` | CPU/memory | `100m/128Mi` req, `500m/512Mi` limit |
 | **Server** | | |
@@ -76,7 +104,7 @@ accepting tasks.
 | `sandbox.networkPolicy.enabled` | Agent pod NetworkPolicy | `true` |
 | **Warm Pool** | | |
 | `warmPool.enabled` | Enable SandboxWarmPool | `false` |
-| `warmPool.replicas` | Pre-warmed pods | `3` |
+| `warmPool.replicas` | Pre-warmed pods | `2` |
 | **Agent Sandbox** | | |
 | `agentSandbox.install` | Install agent-sandbox controller | `true` |
 | `agentSandbox.image.repository` | Sandbox controller image | `registry.k8s.io/agent-sandbox/agent-sandbox-controller` |
@@ -111,7 +139,33 @@ accepting tasks.
 The controller and agent pod images are hosted on private GHCR. You need a
 pull secret in the release namespace.
 
-### Option 1: kubectl (quickstart)
+### Option 1: Helm flag (recommended)
+
+Supply the token directly at install time — it is passed as a chart value and
+never written to your shell history as a standalone `kubectl` command:
+
+```bash
+helm install dg-agent devopsgenie/dg-platform-agent \
+  --namespace devopsgenie --create-namespace \
+  --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
+```
+
+The chart creates the `dockerconfigjson` Secret from this value automatically.
+
+### Option 2: External Secrets Operator (recommended for production)
+
+Sync the GHCR pull secret from your secret manager using External Secrets
+Operator, then reference the resulting Secret:
+
+```yaml
+imageCredentials:
+  existingSecret: ghcr
+```
+
+Create the ESO `ExternalSecret` outside this chart to populate a
+`kubernetes.io/dockerconfigjson` Secret named `ghcr` in the release namespace.
+
+### Option 3: kubectl (quick local testing)
 
 ```bash
 kubectl create secret docker-registry ghcr \
@@ -121,17 +175,10 @@ kubectl create secret docker-registry ghcr \
   -n devopsgenie
 ```
 
+> **Note:** This exposes the token in your shell history. Prefer Option 1 or
+> Option 2 for shared or production environments.
+
 Then set `imageCredentials.existingSecret=ghcr` in your values.
-
-### Option 2: External Secrets Operator
-
-Create a `kubernetes.io/dockerconfigjson` Secret with External Secrets Operator
-outside this chart, then reference it:
-
-```yaml
-imageCredentials:
-  existingSecret: ghcr
-```
 
 ## External Secrets for Agent Credentials
 
@@ -168,9 +215,32 @@ The CRDs (in `crds/`) are always installed by Helm regardless of this setting.
 
 ## RBAC
 
-The controller needs a **ClusterRole** (not namespace Role) because sandbox
-CRDs are cluster-scoped. The granted permissions are:
+This chart creates two distinct RBAC sets:
 
-- `agents.x-k8s.io`: sandboxes, sandboxtemplates — CRUD
-- `extensions.agents.x-k8s.io`: sandboxclaims, sandboxwarmpools — CRUD
-- Core: pods (read), services (read + create), pods/portforward (create)
+**1. DG controller (namespace-scoped)**
+
+The DG controller manages Sandbox CRDs (which are namespace-scoped) within
+the release namespace. It uses:
+
+- A `Role` with verbs on `sandboxes`, `sandboxclaims`, `sandboxtemplates`,
+  and `sandboxwarmpools` from the `agents.x-k8s.io` and
+  `extensions.agents.x-k8s.io` API groups.
+- A `RoleBinding` to the chart's `ServiceAccount`.
+
+See `templates/controller-rbac.yaml`.
+
+**2. Bundled agent-sandbox controller (cluster-scoped, when `agentSandbox.install=true`)**
+
+The upstream `agent-sandbox` controller (from `kubernetes-sigs/agent-sandbox`)
+is bundled because it owns the Sandbox CRD reconciliation across namespaces.
+It uses cluster-scoped RBAC:
+
+- `ClusterRole` granting CRD watch/list and Sandbox lifecycle verbs.
+- `ClusterRoleBinding` to a dedicated ServiceAccount in
+  `agent-sandbox-system`.
+
+If your cluster already has an `agent-sandbox-controller` deployment from
+another source, set `agentSandbox.install=false` to skip these resources.
+
+See `templates/agent-sandbox-controller.yaml` and
+`templates/agent-sandbox-rbac.yaml`.
