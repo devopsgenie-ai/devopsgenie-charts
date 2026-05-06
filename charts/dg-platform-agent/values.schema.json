@@ -54,11 +54,14 @@
       "properties": {
         "replicaCount": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1,
+          "description": "Number of controller replicas. Currently capped at 1 — leader election is not yet implemented."
         },
         "env": {
           "type": "object",
-          "description": "Additional non-sensitive env vars for agent pods. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
+          "description": "Additional non-sensitive env vars for the controller pod. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
           "propertyNames": {
             "not": {
               "enum": [
@@ -103,8 +106,45 @@
         },
         "env": {
           "type": "object",
+          "description": "Additional non-sensitive env vars for agent pods. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "AGENT_LLM_TIMEOUT_SECONDS",
+                "AGENT_LLM_MAX_RETRIES"
+              ]
+            }
+          },
           "additionalProperties": {
             "type": "string"
+          }
+        },
+        "workspaceSize": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$",
+          "description": "Workspace volume size (Kubernetes quantity, e.g. \"10Gi\", \"500Mi\")."
+        }
+      }
+    },
+    "vcs": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["github", "gitlab", "bitbucket"],
+          "description": "VCS provider for the agent's git operations."
+        },
+        "token": { "type": "string" },
+        "infrastructureRepoUrl": { "type": "string" },
+        "infrastructureRepoPath": { "type": "string" },
+        "deploymentRepoUrl": { "type": "string" },
+        "deploymentRepoPath": { "type": "string" },
+        "githubApp": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "installationId": { "type": "string" },
+            "privateKey": { "type": "string" }
           }
         }
       }
@@ -240,6 +280,101 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "anyOf": [
+            {
+              "required": ["imageCredentials"],
+              "properties": {
+                "imageCredentials": {
+                  "required": ["token"],
+                  "properties": {
+                    "token": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            },
+            {
+              "required": ["imageCredentials"],
+              "properties": {
+                "imageCredentials": {
+                  "required": ["existingSecret"],
+                  "properties": {
+                    "existingSecret": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "then": {
+        "description": "Either imageCredentials.token or imageCredentials.existingSecret must be set.",
+        "required": ["imageCredentials"],
+        "properties": {
+          "imageCredentials": {
+            "anyOf": [
+              {
+                "required": ["token"],
+                "properties": {
+                  "token": { "minLength": 1 }
+                }
+              },
+              {
+                "required": ["existingSecret"],
+                "properties": {
+                  "existingSecret": { "minLength": 1 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "vcs": {
+            "anyOf": [
+              {
+                "required": ["infrastructureRepoUrl"],
+                "properties": { "infrastructureRepoUrl": { "minLength": 1 } }
+              },
+              {
+                "required": ["deploymentRepoUrl"],
+                "properties": { "deploymentRepoUrl": { "minLength": 1 } }
+              }
+            ]
+          }
+        }
+      },
+      "then": {
+        "description": "When vcs.infrastructureRepoUrl or vcs.deploymentRepoUrl is set, either vcs.token or vcs.githubApp.id must be provided.",
+        "properties": {
+          "vcs": {
+            "anyOf": [
+              {
+                "required": ["token"],
+                "properties": {
+                  "token": { "minLength": 1 }
+                }
+              },
+              {
+                "properties": {
+                  "githubApp": {
+                    "required": ["id"],
+                    "properties": {
+                      "id": { "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       }
