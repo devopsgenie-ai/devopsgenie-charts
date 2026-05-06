@@ -15,6 +15,8 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/credentials: {{ include (print $.Template.BasePath "/credentials-secret.yaml") . | sha256sum }}
+        checksum/agentpod-secret: {{ include (print $.Template.BasePath "/agentpod-secret.yaml") . | sha256sum }}
       labels:
         {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 8 }}
         dg-role: controller
