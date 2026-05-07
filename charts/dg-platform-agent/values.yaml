@@ -8,7 +8,7 @@
 #   helm install dg-agent devopsgenie/dg-agent \
 #     --namespace devopsgenie --create-namespace \
 #     --set apiKey=dk_xxxxx \
-#     --set imageCredentials.token=ghp_xxxxx
+#     --set imageCredentials.existingSecret=devopsgenie-pull-secret
 #
 # Or use a separate secrets file (add to .gitignore):
 #
@@ -24,13 +24,15 @@ apiKey: ""
 
 # imageCredentials configures access to private DevOps Genie container images
 imageCredentials:
-  # imageCredentials.token is a GitHub PAT with read:packages scope (provided by DG)
-  # Pass via: --set imageCredentials.token=ghp_xxxxx
+  # imageCredentials.registry is the private registry host used when the chart creates a pull secret
+  registry: "registry.devopsgenie.ai"
+  # imageCredentials.token is a private registry pull token (provided by DG)
+  # Pass via: --set imageCredentials.token=xxxxx --set imageCredentials.username=xxxxx
   # The chart auto-creates a pull secret from this token.
   # For external secret management, leave empty and use imageCredentials.existingSecret.
   token: ""
-  # imageCredentials.username is the GitHub username for GHCR auth (rarely needs changing)
-  username: "devopsgenie-ai"
+  # imageCredentials.username is the private registry pull username
+  username: ""
   # imageCredentials.existingSecret references a pre-created kubernetes.io/dockerconfigjson Secret
   existingSecret: ""
 
@@ -114,7 +116,7 @@ credentials:
 controller:
   image:
     # controller.image.repository is the container image repository
-    repository: ghcr.io/devopsgenie-ai/dg-controller
+    repository: registry.devopsgenie.ai/devopsgenie-agent/dg-controller
     # controller.image.tag overrides the image tag (defaults to Chart appVersion)
     tag: ""
     # controller.image.pullPolicy is the Kubernetes image pull policy
@@ -139,7 +141,7 @@ controller:
 agentPod:
   image:
     # agentPod.image.repository is the agent pod container image
-    repository: ghcr.io/devopsgenie-ai/dg-agent-pod
+    repository: registry.devopsgenie.ai/devopsgenie-agent/dg-agent-pod
     # agentPod.image.tag is the agent pod image tag
     tag: "0.1.0"
   # agentPod.resources for agent pod containers

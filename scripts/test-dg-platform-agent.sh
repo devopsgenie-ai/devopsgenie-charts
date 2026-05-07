@@ -36,16 +36,26 @@ assert_not_contains() {
 
 base_args=(
   --set credentials.existingSecret=test-secret
-  --set imageCredentials.existingSecret=ghcr
+  --set imageCredentials.existingSecret=devopsgenie-pull-secret
 )
 
 direct_api_key_render="$tmpdir/direct-api-key.yaml"
 render \
   --set apiKey=dk_test \
-  --set imageCredentials.existingSecret=ghcr \
+  --set imageCredentials.existingSecret=devopsgenie-pull-secret \
   > "$direct_api_key_render"
 assert_contains "$direct_api_key_render" 'DG_API_KEY: "ZGtfdGVzdA=="'
 assert_not_contains "$direct_api_key_render" 'DG_AGENT_ID'
+
+inline_registry_render="$tmpdir/inline-registry.yaml"
+render \
+  --set apiKey=dk_test \
+  --set imageCredentials.username=robot-test \
+  --set imageCredentials.token=registry-token \
+  --set imageCredentials.registry=registry.devopsgenie.ai \
+  > "$inline_registry_render"
+assert_contains "$inline_registry_render" 'kind: Secret'
+assert_contains "$inline_registry_render" 'name: dg-agent-dg-platform-agent-pull-secret'
 
 default_render="$tmpdir/default.yaml"
 render "${base_args[@]}" > "$default_render"
@@ -63,7 +73,7 @@ cat > "$empty_public_egress_values" <<'YAML'
 credentials:
   existingSecret: test-secret
 imageCredentials:
-  existingSecret: ghcr
+  existingSecret: devopsgenie-pull-secret
 sandbox:
   networkPolicy:
     publicEgressPorts: []
@@ -97,7 +107,7 @@ render \
   --set credentials.externalSecret.secretStoreRef.name=aws-sm \
   --set credentials.externalSecret.secretStoreRef.kind=ClusterSecretStore \
   --set 'credentials.externalSecret.dataFrom[0].extract.key=prod/dg-platform-agent' \
-  --set imageCredentials.existingSecret=ghcr \
+  --set imageCredentials.existingSecret=devopsgenie-pull-secret \
   > "$eso_render"
 assert_contains "$eso_render" 'dataFrom:'
 assert_contains "$eso_render" 'key: prod/dg-platform-agent'
@@ -113,7 +123,7 @@ fi
 assert_contains "$tmpdir/incomplete-github-app.err" 'installationId'
 assert_contains "$tmpdir/incomplete-github-app.err" 'privateKey'
 
-if render --set imageCredentials.existingSecret=ghcr > "$tmpdir/missing-api-key.yaml" 2> "$tmpdir/missing-api-key.err"; then
+if render --set imageCredentials.existingSecret=devopsgenie-pull-secret > "$tmpdir/missing-api-key.yaml" 2> "$tmpdir/missing-api-key.err"; then
   echo "Expected chart render without apiKey or credentials secret to fail" >&2
   exit 1
 fi

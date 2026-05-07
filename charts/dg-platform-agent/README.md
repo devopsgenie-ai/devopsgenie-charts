@@ -14,7 +14,7 @@ DevOps Genie agent for client clusters. Single `helm install` deploys:
 - Cluster-admin permissions, or equivalent RBAC to create `CustomResourceDefinition`,
   `ClusterRole`, `ClusterRoleBinding`, and `Namespace` resources
 - Agent API key (`DG_API_KEY`) from your DevOps Genie dashboard
-- GHCR pull secret for private images (see [GHCR Setup](#ghcr-setup))
+- DevOps Genie registry pull secret for private images (see [Private Registry Setup](#private-registry-setup))
 
 ## Quick Start
 
@@ -34,16 +34,16 @@ kubectl create secret generic dg-platform-agent \
   --namespace devopsgenie \
   --from-literal=DG_API_KEY=YOUR_API_KEY
 
-kubectl create secret docker-registry ghcr \
+kubectl create secret docker-registry devopsgenie-pull-secret \
   --namespace devopsgenie \
-  --docker-server=ghcr.io \
-  --docker-username=YOUR_GHCR_USERNAME \
-  --docker-password=YOUR_GHCR_TOKEN
+  --docker-server=registry.devopsgenie.ai \
+  --docker-username=YOUR_REGISTRY_USERNAME \
+  --docker-password=YOUR_REGISTRY_PASSWORD
 
 helm install dg-agent devopsgenie/dg-platform-agent \
   --namespace devopsgenie --create-namespace \
   --set credentials.existingSecret=dg-platform-agent \
-  --set imageCredentials.existingSecret=ghcr
+  --set imageCredentials.existingSecret=devopsgenie-pull-secret
 ```
 
 For quick local testing only, credentials can be supplied directly:
@@ -52,7 +52,8 @@ For quick local testing only, credentials can be supplied directly:
 helm install dg-agent devopsgenie/dg-platform-agent \
   --namespace devopsgenie --create-namespace \
   --set apiKey=YOUR_API_KEY \
-  --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
+  --set imageCredentials.username=YOUR_REGISTRY_USERNAME \
+  --set imageCredentials.token=YOUR_REGISTRY_PASSWORD
 ```
 
 > Direct `--set` secrets can be stored in shell history, CI logs, and Helm
@@ -102,7 +103,7 @@ required migrations.
 | `nameOverride` | Override chart name | `""` |
 | `fullnameOverride` | Override generated resource names | `""` |
 | **Controller** | | |
-| `controller.image.repository` | Controller image | `ghcr.io/devopsgenie-ai/dg-controller` |
+| `controller.image.repository` | Controller image | `registry.devopsgenie.ai/devopsgenie-agent/dg-controller` |
 | `controller.image.tag` | Image tag (defaults to `appVersion`) | `""` |
 | `controller.image.pullPolicy` | Pull policy | `IfNotPresent` |
 | `controller.replicaCount` | Replicas | `1` |
@@ -112,7 +113,7 @@ required migrations.
 | `server.wsUrl` | Platform WebSocket URL | `wss://app.devopsgenie.ai/ws/agent` |
 | `server.authUrl` | Platform auth URL | `https://app.devopsgenie.ai/api/v1/agents/auth` |
 | **Agent Pod** | | |
-| `agentPod.image.repository` | Agent pod image | `ghcr.io/devopsgenie-ai/dg-agent-pod` |
+| `agentPod.image.repository` | Agent pod image | `registry.devopsgenie.ai/devopsgenie-agent/dg-agent-pod` |
 | `agentPod.image.tag` | Agent pod tag | `0.1.0` |
 | `agentPod.existingSecret` | Pre-created Secret for agent pod runtime/VCS env | `""` |
 | `agentPod.resources` | Agent pod resources | `1cpu/2Gi` req, `2cpu/4Gi` limit |
@@ -137,9 +138,10 @@ required migrations.
 | `agentSandbox.install` | Install agent-sandbox controller | `true` |
 | `agentSandbox.image.repository` | Sandbox controller image | `registry.k8s.io/agent-sandbox/agent-sandbox-controller` |
 | `agentSandbox.image.tag` | Sandbox controller version | `v0.2.1` |
-| **GHCR** | | |
-| `imageCredentials.token` | GitHub PAT with `read:packages` scope | `""` |
-| `imageCredentials.username` | GHCR username | `devopsgenie-ai` |
+| **Image Pull Credentials** | | |
+| `imageCredentials.registry` | Private registry host | `registry.devopsgenie.ai` |
+| `imageCredentials.token` | Private registry pull token/password | `""` |
+| `imageCredentials.username` | Private registry pull username | `""` |
 | `imageCredentials.existingSecret` | Pre-created dockerconfigjson Secret | `""` |
 | **ServiceAccount** | | |
 | `serviceAccount.create` | Create ServiceAccount | `true` |
@@ -175,30 +177,31 @@ handles multi-line PEM content correctly, but still stores the key in Helm
 release storage. For production, put the private key in an external secret and
 reference it through `agentPod.existingSecret`.
 
-## GHCR Setup
+## Private Registry Setup
 
-The controller and agent pod images are hosted on private GHCR. You need a
-pull secret in the release namespace.
+The controller and agent pod images are hosted on the private DevOps Genie
+registry at `registry.devopsgenie.ai`. You need a pull secret in the release
+namespace.
 
 ### Option 1: Existing Secret (recommended for production)
 
-Create or sync a `kubernetes.io/dockerconfigjson` Secret named `ghcr`, then
+Create or sync a `kubernetes.io/dockerconfigjson` Secret named `devopsgenie-pull-secret`, then
 reference it:
 
 ```yaml
 imageCredentials:
-  existingSecret: ghcr
+  existingSecret: devopsgenie-pull-secret
 ```
 
 ### Option 2: External Secrets Operator
 
 Create the ESO `ExternalSecret` outside this chart to populate a
-`kubernetes.io/dockerconfigjson` Secret named `ghcr` in the release namespace,
+`kubernetes.io/dockerconfigjson` Secret named `devopsgenie-pull-secret` in the release namespace,
 then set:
 
 ```yaml
 imageCredentials:
-  existingSecret: ghcr
+  existingSecret: devopsgenie-pull-secret
 ```
 
 ### Option 3: Helm flag (quick local testing)
@@ -209,7 +212,8 @@ token can be stored in shell history, CI logs, and Helm release storage:
 ```bash
 helm install dg-agent devopsgenie/dg-platform-agent \
   --namespace devopsgenie --create-namespace \
-  --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
+  --set imageCredentials.username=YOUR_REGISTRY_USERNAME \
+  --set imageCredentials.token=YOUR_REGISTRY_PASSWORD
 ```
 
 Use this only for local testing or short-lived clusters.
@@ -217,17 +221,17 @@ Use this only for local testing or short-lived clusters.
 ### Option 4: kubectl (quick local testing)
 
 ```bash
-kubectl create secret docker-registry ghcr \
-  --docker-server=ghcr.io \
-  --docker-username=<github-username> \
-  --docker-password=<ghcr-pat> \
+kubectl create secret docker-registry devopsgenie-pull-secret \
+  --docker-server=registry.devopsgenie.ai \
+  --docker-username=<registry-username> \
+  --docker-password=<registry-password> \
   -n devopsgenie
 ```
 
 > **Note:** This can expose the token in your shell history. Prefer Option 1
 > or Option 2 for shared or production environments.
 
-Then set `imageCredentials.existingSecret=ghcr` in your values.
+Then set `imageCredentials.existingSecret=devopsgenie-pull-secret` in your values.
 
 ## External Secrets for Agent Credentials
 

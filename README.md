@@ -31,10 +31,10 @@ helm repo update
 # Create namespace and secrets
 kubectl create namespace devopsgenie
 
-kubectl create secret docker-registry ghcr \
-  --docker-server=ghcr.io \
-  --docker-username=<github-username> \
-  --docker-password=<ghcr-pat> \
+kubectl create secret docker-registry devopsgenie-pull-secret \
+  --docker-server=registry.devopsgenie.ai \
+  --docker-username=<registry-username> \
+  --docker-password=<registry-password> \
   -n devopsgenie
 
 kubectl create secret generic dg-platform-agent \
@@ -44,7 +44,7 @@ kubectl create secret generic dg-platform-agent \
 # Install
 helm install dg-agent devopsgenie/dg-platform-agent \
   --set credentials.existingSecret=dg-platform-agent \
-  --set imageCredentials.existingSecret=ghcr \
+  --set imageCredentials.existingSecret=devopsgenie-pull-secret \
   --namespace devopsgenie
 ```
 
@@ -52,13 +52,13 @@ See [charts/dg-platform-agent/README.md](charts/dg-platform-agent/README.md) for
 
 ## Image registry
 
-Container images are published to **GitHub Container Registry (GHCR)**:
+Container images are published to the private DevOps Genie Harbor registry:
 
-- `ghcr.io/devopsgenie-ai/dg-controller`
-- `ghcr.io/devopsgenie-ai/dg-agent-pod`
+- `registry.devopsgenie.ai/devopsgenie-agent/dg-controller`
+- `registry.devopsgenie.ai/devopsgenie-agent/dg-agent-pod`
 
-If the images are private, your cluster needs a pull secret. See
-[GHCR Setup](charts/dg-platform-agent/README.md#ghcr-setup) for instructions.
+Your cluster needs a pull secret. See
+[Private Registry Setup](charts/dg-platform-agent/README.md#private-registry-setup) for instructions.
 
 ## Adding this Helm repo
 

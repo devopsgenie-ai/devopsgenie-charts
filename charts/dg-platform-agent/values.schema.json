@@ -11,13 +11,17 @@
     "imageCredentials": {
       "type": "object",
       "properties": {
+        "registry": {
+          "type": "string",
+          "default": "registry.devopsgenie.ai"
+        },
         "token": {
           "type": "string",
-          "description": "GitHub PAT with read:packages scope for pulling private images"
+          "description": "Private registry token for pulling DevOps Genie agent images"
         },
         "username": {
           "type": "string",
-          "default": "devopsgenie-ai"
+          "default": ""
         },
         "existingSecret": {
           "type": "string",
@@ -381,6 +385,29 @@
                 }
               }
             ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["imageCredentials"],
+        "properties": {
+          "imageCredentials": {
+            "required": ["token"],
+            "properties": {
+              "token": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "imageCredentials": {
+            "required": ["username"],
+            "properties": {
+              "username": { "minLength": 1 }
+            }
           }
         }
       }

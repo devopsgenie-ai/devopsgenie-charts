@@ -36,7 +36,7 @@ jobs:
         run: |
           helm lint charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret
 
   template-test:
     name: Template Test
@@ -54,14 +54,14 @@ jobs:
         run: |
           helm template test charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret
           echo "Template rendered successfully (default)"
 
       - name: Template dg-platform-agent (no agent-sandbox)
         run: |
           helm template test charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr \
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret \
             --set agentSandbox.install=false
           echo "Template rendered successfully (agentSandbox disabled)"
 
@@ -71,14 +71,14 @@ jobs:
             --set credentials.externalSecret.enabled=true \
             --set credentials.externalSecret.secretStoreRef.name=aws-sm \
             --set credentials.externalSecret.secretStoreRef.kind=ClusterSecretStore \
-            --set imageCredentials.existingSecret=ghcr
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret
           echo "Template rendered successfully (ESO enabled)"
 
       - name: Template dg-platform-agent (controller-owned warm pool)
         run: |
           helm template test charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr \
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret \
             --set-string controller.env.WARM_POOL_SIZE=2 \
             --set-string controller.env.SANDBOX_CONNECTION_MODE=direct
           echo "Template rendered successfully (controller-owned warm pool)"

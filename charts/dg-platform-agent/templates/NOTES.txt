@@ -35,12 +35,12 @@ Set apiKey, or provide credentials.existingSecret/credentials.externalSecret.
 The controller will fail to authenticate without credentials.
 {{- end }}
 
-{{- $ghcrName := include "dg-platform-agent.ghcrSecretName" . }}
-{{- if not $ghcrName }}
+{{- $pullSecretName := include "dg-platform-agent.imagePullSecretName" . }}
+{{- if not $pullSecretName }}
 
 WARNING: No image pull credentials configured!
 Set imageCredentials.token or imageCredentials.existingSecret.
-Pods will fail to pull private images from ghcr.io.
+Pods will fail to pull private images from registry.devopsgenie.ai.
 {{- end }}
 
 ---

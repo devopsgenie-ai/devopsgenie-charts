@@ -14,10 +14,10 @@ metadata:
 spec:
   podTemplate:
     spec:
-      {{- $ghcrName := include "dg-platform-agent.ghcrSecretName" . }}
-      {{- if $ghcrName }}
+      {{- $pullSecretName := include "dg-platform-agent.imagePullSecretName" . }}
+      {{- if $pullSecretName }}
       imagePullSecrets:
-        - name: {{ $ghcrName }}
+        - name: {{ $pullSecretName }}
       {{- end }}
       serviceAccountName: {{ include "dg-platform-agent.agentPodServiceAccountName" . }}
       automountServiceAccountToken: false
