@@ -24,18 +24,14 @@ Status: Installed in namespace "{{ .Release.Namespace }}"
 
 ---
 Configuration:
-  Agent ID:      {{ .Values.agentId | default "(from existingSecret/externalSecret)" }}
   Server:        {{ .Values.server.wsUrl }}
   Max agents:    {{ .Values.maxAgents }}
   Idle TTL:      {{ .Values.sandbox.sessionIdleTtlSeconds }}s
-{{- if .Values.warmPool.enabled }}
-  Warm pool:     {{ .Values.warmPool.replicas }} pre-warmed pods
-{{- end }}
 
-{{- if and (not .Values.agentId) (not .Values.credentials.existingSecret) (not .Values.credentials.externalSecret.enabled) }}
+{{- if and (not .Values.apiKey) (not .Values.credentials.existingSecret) (not .Values.credentials.externalSecret.enabled) }}
 
 WARNING: No agent credentials configured!
-Set agentId and apiKey, or provide credentials.existingSecret/credentials.externalSecret.
+Set apiKey, or provide credentials.existingSecret/credentials.externalSecret.
 The controller will fail to authenticate without credentials.
 {{- end }}
 
@@ -49,7 +45,7 @@ Pods will fail to pull private images from ghcr.io.
 
 ---
 Security:
-  Secrets (agentId, apiKey, imageCredentials.token) should be passed via
+  Secrets (apiKey, imageCredentials.token) should be passed via
   --set flags or a gitignored file — never commit them to version control.
 
   For production, use credentials.existingSecret or credentials.externalSecret

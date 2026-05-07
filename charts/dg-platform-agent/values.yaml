@@ -7,7 +7,6 @@
 #
 #   helm install dg-agent devopsgenie/dg-agent \
 #     --namespace devopsgenie --create-namespace \
-#     --set agentId=ag_xxxxx \
 #     --set apiKey=dk_xxxxx \
 #     --set imageCredentials.token=ghp_xxxxx
 #
@@ -18,10 +17,6 @@
 # For production, use credentials.existingSecret or credentials.externalSecret
 # (see ADVANCED section below).
 # ============================================================================
-
-# agentId is your DevOps Genie agent identifier (provided by DG platform)
-# Pass via: --set agentId=ag_xxxxx
-agentId: ""
 
 # apiKey is your DevOps Genie API key (provided by DG platform)
 # Pass via: --set apiKey=dk_xxxxx
@@ -72,7 +67,8 @@ vcs:
     installationId: ""
     # vcs.githubApp.privateKey is the PEM-encoded RSA private key
     # Pass via: --set-file vcs.githubApp.privateKey=path/to/app-key.pem
-    # Or store in your external secret manager and reference via agentPod.existingSecret
+    # --set-file handles multi-line PEM content, but still stores the key in Helm release storage.
+    # For production, store this in your external secret manager and reference via agentPod.existingSecret.
     privateKey: ""
 
 # ============================================================================
@@ -85,16 +81,16 @@ maxAgents: 10
 # server is the DevOps Genie platform server endpoints (override for on-prem or staging)
 server:
   # server.wsUrl is the WebSocket URL the controller connects to
-  wsUrl: "wss://platform.devopsgenie.com/ws/agent"
+  wsUrl: "wss://app.devopsgenie.ai/ws/agent"
   # server.authUrl is the authentication endpoint
-  authUrl: "https://platform.devopsgenie.com/api/v1/agents/auth"
+  authUrl: "https://app.devopsgenie.ai/api/v1/agents/auth"
 
 # ============================================================================
 # ADVANCED — Only change if you know what you're doing
 # ============================================================================
 
-# credentials configures how agent credentials (DG_AGENT_ID, DG_API_KEY) are managed.
-# By default, the chart creates a Secret from agentId/apiKey above.
+# credentials configures how agent credentials (DG_API_KEY) are managed.
+# By default, the chart creates a Secret from apiKey above.
 # Set existingSecret to use a pre-created Secret, or enable externalSecret for ESO.
 credentials:
   # credentials.existingSecret skips Secret creation and uses this Secret name instead
@@ -107,12 +103,11 @@ credentials:
       name: ""
       kind: ClusterSecretStore
     data: []
-    #  - secretKey: DG_AGENT_ID
-    #    remoteRef:
-    #      key: devopsgenie/agent-id
     #  - secretKey: DG_API_KEY
     #    remoteRef:
     #      key: devopsgenie/api-key
+    # credentials.externalSecret.dataFrom uses full ESO dataFrom items.
+    # Example: [{extract: {key: "prod/dg-platform-agent"}}]
     dataFrom: []
 
 # controller configures the DG controller deployment
@@ -173,6 +168,15 @@ agentPod:
   existingSecret: ""
   # agentPod.env is additional non-sensitive env vars for agent pods
   env: {}
+  # agentPod.serviceAccount controls the ServiceAccount used by spawned agent pods.
+  # The default ServiceAccount is intentionally not used because agent pods run automation.
+  serviceAccount:
+    # agentPod.serviceAccount.create enables creating a dedicated no-RBAC ServiceAccount
+    create: true
+    # agentPod.serviceAccount.name overrides the dedicated ServiceAccount name
+    name: ""
+    # agentPod.serviceAccount.annotations adds annotations to the dedicated ServiceAccount
+    annotations: {}
   nodeSelector: {}
   tolerations: []
 
@@ -184,13 +188,17 @@ sandbox:
   networkPolicy:
     # sandbox.networkPolicy.enabled creates egress restrictions on agent pods
     enabled: true
-
-# warmPool pre-creates idle sandbox pods for faster task start
-warmPool:
-  # warmPool.enabled enables the SandboxWarmPool CR
-  enabled: false
-  # warmPool.replicas is the number of warm pods to maintain
-  replicas: 2
+    # sandbox.networkPolicy.allowedPrivateCidrs allows HTTPS/Kubernetes API access to private endpoints
+    allowedPrivateCidrs:
+      - 10.0.0.0/8
+    # sandbox.networkPolicy.publicEgressPorts allows outbound internet access for git, registries, and APIs.
+    # Port 22 supports SSH git remotes; remove it if your org only allows HTTPS.
+    publicEgressPorts:
+      - 443
+      - 22
+    # sandbox.networkPolicy.extraEgress adds custom NetworkPolicy egress rules for private git, proxies, or registries.
+    # These rules are passed through verbatim and can widen egress if misconfigured.
+    extraEgress: []
 
 # agentSandbox controls installation of the upstream agent-sandbox controller (k8s-sigs)
 agentSandbox:

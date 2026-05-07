@@ -38,7 +38,6 @@ kubectl create secret docker-registry ghcr \
   -n devopsgenie
 
 kubectl create secret generic dg-platform-agent \
-  --from-literal=DG_AGENT_ID=<your-agent-id> \
   --from-literal=DG_API_KEY=<your-api-key> \
   -n devopsgenie
 

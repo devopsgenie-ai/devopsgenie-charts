@@ -72,7 +72,6 @@ jobs:
           helm template test "$CHART_PATH" \
             --set credentials.existingSecret=test-secret \
             --set imageCredentials.existingSecret=ghcr \
-            --set warmPool.enabled=false \
             --set-string controller.env.WARM_POOL_SIZE=2 \
             --set-string controller.env.SANDBOX_CONNECTION_MODE=direct >/dev/null
 
@@ -80,7 +79,9 @@ jobs:
             echo "Expected chart render without credentials to fail"
             exit 1
           fi
-          grep -E "agentId|apiKey" /tmp/dg-platform-agent-schema.out
+          grep -E "apiKey" /tmp/dg-platform-agent-schema.out
+
+          bash scripts/test-dg-platform-agent.sh
 
       - name: Bump version in Chart.yaml
         if: github.event.inputs.bump != 'none'

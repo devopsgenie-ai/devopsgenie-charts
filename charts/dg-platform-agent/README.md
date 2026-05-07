@@ -11,7 +11,9 @@ DevOps Genie agent for client clusters. Single `helm install` deploys:
 
 - Kubernetes 1.19+
 - Helm 3
-- Agent credentials (`DG_AGENT_ID` + `DG_API_KEY`) from your DevOps Genie dashboard
+- Cluster-admin permissions, or equivalent RBAC to create `CustomResourceDefinition`,
+  `ClusterRole`, `ClusterRoleBinding`, and `Namespace` resources
+- Agent API key (`DG_API_KEY`) from your DevOps Genie dashboard
 - GHCR pull secret for private images (see [GHCR Setup](#ghcr-setup))
 
 ## Quick Start
@@ -23,24 +25,39 @@ helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts
 helm repo update
 ```
 
-Install with credentials supplied directly:
+For production, create Kubernetes Secrets first and reference them from the chart:
 
 ```bash
-helm install dg-agent devopsgenie/dg-platform-agent \
-  --namespace devopsgenie --create-namespace \
-  --set agentId=YOUR_AGENT_ID \
-  --set apiKey=YOUR_API_KEY \
-  --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
-```
+kubectl create namespace devopsgenie
 
-Or, with credentials pre-created as Kubernetes Secrets (recommended for production — see [Secret Management](#secret-management)):
+kubectl create secret generic dg-platform-agent \
+  --namespace devopsgenie \
+  --from-literal=DG_API_KEY=YOUR_API_KEY
 
-```bash
+kubectl create secret docker-registry ghcr \
+  --namespace devopsgenie \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GHCR_USERNAME \
+  --docker-password=YOUR_GHCR_TOKEN
+
 helm install dg-agent devopsgenie/dg-platform-agent \
   --namespace devopsgenie --create-namespace \
   --set credentials.existingSecret=dg-platform-agent \
   --set imageCredentials.existingSecret=ghcr
 ```
+
+For quick local testing only, credentials can be supplied directly:
+
+```bash
+helm install dg-agent devopsgenie/dg-platform-agent \
+  --namespace devopsgenie --create-namespace \
+  --set apiKey=YOUR_API_KEY \
+  --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
+```
+
+> Direct `--set` secrets can be stored in shell history, CI logs, and Helm
+> release storage. Use existing Kubernetes Secrets or External Secrets Operator
+> for shared and production clusters.
 
 > **For chart contributors:** The chart can also be installed from a local
 > clone with `helm install dg-agent ./charts/dg-platform-agent ...`.
@@ -55,9 +72,17 @@ ships CRD changes (rare, but possible), you must apply CRD updates manually
 before running `helm upgrade`:
 
 ```bash
-kubectl apply -f \
-  https://raw.githubusercontent.com/devopsgenie-ai/devopsgenie-charts/main/charts/dg-platform-agent/crds/
+VERSION=dg-platform-agent-<chart-version>
+BASE_URL="https://raw.githubusercontent.com/devopsgenie-ai/devopsgenie-charts/${VERSION}/charts/dg-platform-agent/crds"
+
+kubectl apply -f "${BASE_URL}/sandboxes.agents.x-k8s.io.yaml"
+kubectl apply -f "${BASE_URL}/sandboxclaims.extensions.agents.x-k8s.io.yaml"
+kubectl apply -f "${BASE_URL}/sandboxtemplates.extensions.agents.x-k8s.io.yaml"
+kubectl apply -f "${BASE_URL}/sandboxwarmpools.extensions.agents.x-k8s.io.yaml"
 ```
+
+Use the chart release tag you are upgrading to, for example
+`dg-platform-agent-0.3.7`.
 
 Then proceed with the upgrade:
 
@@ -84,8 +109,8 @@ required migrations.
 | `controller.env` | Extra env vars (non-sensitive) | `{}` |
 | `controller.resources` | CPU/memory | `100m/128Mi` req, `500m/512Mi` limit |
 | **Server** | | |
-| `server.wsUrl` | Platform WebSocket URL | `wss://platform.devopsgenie.com/ws/agent` |
-| `server.authUrl` | Platform auth URL | `https://platform.devopsgenie.com/api/v1/agents/auth` |
+| `server.wsUrl` | Platform WebSocket URL | `wss://app.devopsgenie.ai/ws/agent` |
+| `server.authUrl` | Platform auth URL | `https://app.devopsgenie.ai/api/v1/agents/auth` |
 | **Agent Pod** | | |
 | `agentPod.image.repository` | Agent pod image | `ghcr.io/devopsgenie-ai/dg-agent-pod` |
 | `agentPod.image.tag` | Agent pod tag | `0.1.0` |
@@ -96,15 +121,18 @@ required migrations.
 | `agentPod.llm.timeoutSeconds` | LiteLLM client request timeout | `300` |
 | `agentPod.llm.maxRetries` | LiteLLM client retry count | `2` |
 | `agentPod.env` | Extra non-sensitive env vars | `{}` |
+| `agentPod.serviceAccount.create` | Create a dedicated no-RBAC ServiceAccount for agent pods | `true` |
+| `agentPod.serviceAccount.name` | Agent pod ServiceAccount override | `""` |
+| `agentPod.serviceAccount.annotations` | Agent pod ServiceAccount annotations | `{}` |
 
 `agentPod.llm.timeoutSeconds` must be at least `1`; `agentPod.llm.maxRetries` must be at least `0`. Use these keys instead of setting `AGENT_LLM_TIMEOUT_SECONDS` or `AGENT_LLM_MAX_RETRIES` directly in `agentPod.env`.
 | **Sandbox** | | |
 | `maxAgents` | Max concurrent agent pods | `10` |
 | `sandbox.sessionIdleTtlSeconds` | Idle cleanup timeout | `900` |
 | `sandbox.networkPolicy.enabled` | Agent pod NetworkPolicy | `true` |
-| **Warm Pool** | | |
-| `warmPool.enabled` | Enable SandboxWarmPool | `false` |
-| `warmPool.replicas` | Pre-warmed pods | `2` |
+| `sandbox.networkPolicy.allowedPrivateCidrs` | Private CIDRs allowed for HTTPS/Kubernetes API egress | `["10.0.0.0/8"]` |
+| `sandbox.networkPolicy.publicEgressPorts` | Public TCP egress ports | `[443, 22]` |
+| `sandbox.networkPolicy.extraEgress` | Additional NetworkPolicy egress rules | `[]` |
 | **Agent Sandbox** | | |
 | `agentSandbox.install` | Install agent-sandbox controller | `true` |
 | `agentSandbox.image.repository` | Sandbox controller image | `registry.k8s.io/agent-sandbox/agent-sandbox-controller` |
@@ -118,9 +146,8 @@ required migrations.
 | `serviceAccount.name` | SA name override | `""` |
 | `serviceAccount.annotations` | SA annotations (e.g. IRSA) | `{}` |
 | **Credentials** | | |
-| `agentId` | DevOps Genie agent identifier | `""` |
 | `apiKey` | DevOps Genie API key | `""` |
-| `credentials.existingSecret` | Secret with `DG_AGENT_ID` + `DG_API_KEY` | `""` |
+| `credentials.existingSecret` | Secret with `DG_API_KEY` | `""` |
 | `credentials.externalSecret.enabled` | Use ESO for agent credentials | `false` |
 | `credentials.externalSecret.secretStoreRef.name` | SecretStore name | `""` |
 | `credentials.externalSecret.secretStoreRef.kind` | SecretStore kind | `ClusterSecretStore` |
@@ -134,15 +161,50 @@ required migrations.
 | `vcs.deploymentRepoPath` | Deployment repository subdirectory | `""` |
 | `vcs.githubApp.*` | GitHub App auth settings | `""` |
 
+## Secret Management
+
+This chart supports three credential patterns:
+
+1. Existing Kubernetes Secrets, recommended for production installs.
+2. External Secrets Operator, recommended when your cluster already syncs from
+   AWS Secrets Manager, Vault, GCP Secret Manager, Azure Key Vault, or similar.
+3. Direct Helm values, intended only for quick local testing.
+
+For GitHub App private keys, `--set-file vcs.githubApp.privateKey=path/to/key.pem`
+handles multi-line PEM content correctly, but still stores the key in Helm
+release storage. For production, put the private key in an external secret and
+reference it through `agentPod.existingSecret`.
+
 ## GHCR Setup
 
 The controller and agent pod images are hosted on private GHCR. You need a
 pull secret in the release namespace.
 
-### Option 1: Helm flag (recommended)
+### Option 1: Existing Secret (recommended for production)
 
-Supply the token directly at install time — it is passed as a chart value and
-never written to your shell history as a standalone `kubectl` command:
+Create or sync a `kubernetes.io/dockerconfigjson` Secret named `ghcr`, then
+reference it:
+
+```yaml
+imageCredentials:
+  existingSecret: ghcr
+```
+
+### Option 2: External Secrets Operator
+
+Create the ESO `ExternalSecret` outside this chart to populate a
+`kubernetes.io/dockerconfigjson` Secret named `ghcr` in the release namespace,
+then set:
+
+```yaml
+imageCredentials:
+  existingSecret: ghcr
+```
+
+### Option 3: Helm flag (quick local testing)
+
+Supplying the token directly creates the pull Secret automatically, but the
+token can be stored in shell history, CI logs, and Helm release storage:
 
 ```bash
 helm install dg-agent devopsgenie/dg-platform-agent \
@@ -150,22 +212,9 @@ helm install dg-agent devopsgenie/dg-platform-agent \
   --set imageCredentials.token=ghp_YOUR_GHCR_TOKEN
 ```
 
-The chart creates the `dockerconfigjson` Secret from this value automatically.
+Use this only for local testing or short-lived clusters.
 
-### Option 2: External Secrets Operator (recommended for production)
-
-Sync the GHCR pull secret from your secret manager using External Secrets
-Operator, then reference the resulting Secret:
-
-```yaml
-imageCredentials:
-  existingSecret: ghcr
-```
-
-Create the ESO `ExternalSecret` outside this chart to populate a
-`kubernetes.io/dockerconfigjson` Secret named `ghcr` in the release namespace.
-
-### Option 3: kubectl (quick local testing)
+### Option 4: kubectl (quick local testing)
 
 ```bash
 kubectl create secret docker-registry ghcr \
@@ -175,8 +224,8 @@ kubectl create secret docker-registry ghcr \
   -n devopsgenie
 ```
 
-> **Note:** This exposes the token in your shell history. Prefer Option 1 or
-> Option 2 for shared or production environments.
+> **Note:** This can expose the token in your shell history. Prefer Option 1
+> or Option 2 for shared or production environments.
 
 Then set `imageCredentials.existingSecret=ghcr` in your values.
 
@@ -190,21 +239,33 @@ credentials:
       name: aws-secretsmanager-secrets-store
       kind: ClusterSecretStore
     data:
-      - secretKey: DG_AGENT_ID
-        remoteRef:
-          key: prod/dg-platform-agent
-          property: agent_id
       - secretKey: DG_API_KEY
         remoteRef:
           key: prod/dg-platform-agent
           property: api_key
 ```
 
+Or sync all keys from an external secret path using the standard ESO
+`dataFrom` shape:
+
+```yaml
+credentials:
+  externalSecret:
+    enabled: true
+    secretStoreRef:
+      name: aws-secretsmanager-secrets-store
+      kind: ClusterSecretStore
+    dataFrom:
+      - extract:
+          key: prod/dg-platform-agent
+```
+
 ## Agent Sandbox
 
 This chart bundles [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox)
-v0.2.1 CRDs and controller. If your cluster already has agent-sandbox
-installed, disable the bundled controller:
+v0.2.1 CRDs and controller. Install the bundled controller only once per
+cluster. For subsequent DevOps Genie agent installs in the same cluster, or if
+your cluster already has agent-sandbox installed, disable the bundled controller:
 
 ```yaml
 agentSandbox:

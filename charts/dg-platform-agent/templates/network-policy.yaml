@@ -29,6 +29,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    {{- if .Values.sandbox.networkPolicy.publicEgressPorts }}
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0
@@ -36,17 +37,24 @@ spec:
               - 10.0.0.0/8
               - 172.16.0.0/12
               - 192.168.0.0/16
+              - 169.254.0.0/16
       ports:
+        {{- range .Values.sandbox.networkPolicy.publicEgressPorts }}
         - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 22
+          port: {{ . }}
+        {{- end }}
+    {{- end }}
+    {{- range .Values.sandbox.networkPolicy.allowedPrivateCidrs }}
     - to:
         - ipBlock:
-            cidr: 10.0.0.0/8
+            cidr: {{ . | quote }}
       ports:
         - protocol: TCP
           port: 443
         - protocol: TCP
           port: 6443
+    {{- end }}
+    {{- with .Values.sandbox.networkPolicy.extraEgress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 {{- end }}

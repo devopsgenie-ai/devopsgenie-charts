@@ -147,3 +147,23 @@ Priority: agentPod.existingSecret > chart-created secret
 {{- printf "%s-agent-pod" (include "dg-platform-agent.fullname" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+Agent pod ServiceAccount name — separate from the controller ServiceAccount.
+*/}}
+{{- define "dg-platform-agent.agentPodServiceAccountName" -}}
+{{- if .Values.agentPod.serviceAccount.create -}}
+{{- default (printf "%s-agent-pod" (include "dg-platform-agent.fullname" .)) .Values.agentPod.serviceAccount.name }}
+{{- else -}}
+{{- required "agentPod.serviceAccount.name is required when agentPod.serviceAccount.create=false" .Values.agentPod.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+GitHub App auth is configured only when all required fields are present.
+*/}}
+{{- define "dg-platform-agent.githubAppConfigured" -}}
+{{- if and .Values.vcs.githubApp.id .Values.vcs.githubApp.installationId .Values.vcs.githubApp.privateKey -}}
+true
+{{- end }}
+{{- end }}
