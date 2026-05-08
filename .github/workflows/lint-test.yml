@@ -7,11 +7,13 @@ on:
       - main
     paths:
       - 'charts/**'
+      - 'scripts/**'
       - '.github/workflows/lint-test.yml'
       - '.github/workflows/release-dg-platform-agent.yml'
   pull_request:
     paths:
       - 'charts/**'
+      - 'scripts/**'
       - '.github/workflows/lint-test.yml'
       - '.github/workflows/release-dg-platform-agent.yml'
 
@@ -34,7 +36,7 @@ jobs:
         run: |
           helm lint charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret
 
   template-test:
     name: Template Test
@@ -52,14 +54,14 @@ jobs:
         run: |
           helm template test charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret
           echo "Template rendered successfully (default)"
 
       - name: Template dg-platform-agent (no agent-sandbox)
         run: |
           helm template test charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr \
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret \
             --set agentSandbox.install=false
           echo "Template rendered successfully (agentSandbox disabled)"
 
@@ -69,15 +71,14 @@ jobs:
             --set credentials.externalSecret.enabled=true \
             --set credentials.externalSecret.secretStoreRef.name=aws-sm \
             --set credentials.externalSecret.secretStoreRef.kind=ClusterSecretStore \
-            --set imageCredentials.existingSecret=ghcr
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret
           echo "Template rendered successfully (ESO enabled)"
 
       - name: Template dg-platform-agent (controller-owned warm pool)
         run: |
           helm template test charts/dg-platform-agent \
             --set credentials.existingSecret=test-secret \
-            --set imageCredentials.existingSecret=ghcr \
-            --set warmPool.enabled=false \
+            --set imageCredentials.existingSecret=devopsgenie-pull-secret \
             --set-string controller.env.WARM_POOL_SIZE=2 \
             --set-string controller.env.SANDBOX_CONNECTION_MODE=direct
           echo "Template rendered successfully (controller-owned warm pool)"
@@ -88,4 +89,7 @@ jobs:
             echo "Expected chart render without credentials to fail"
             exit 1
           fi
-          grep -E "agentId|apiKey" /tmp/dg-platform-agent-schema.out
+          grep -E "apiKey" /tmp/dg-platform-agent-schema.out
+
+      - name: Run dg-platform-agent regression tests
+        run: bash scripts/test-dg-platform-agent.sh

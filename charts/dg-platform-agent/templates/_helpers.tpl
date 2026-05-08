@@ -112,27 +112,27 @@ Priority: credentials.existingSecret > credentials.externalSecret (auto-named) >
 {{- end }}
 
 {{/*
-GHCR pull secret name.
+Image pull secret name.
 Priority: imageCredentials.existingSecret > chart-created secret from token > empty
 */}}
-{{- define "dg-platform-agent.ghcrSecretName" -}}
+{{- define "dg-platform-agent.imagePullSecretName" -}}
 {{- if .Values.imageCredentials.existingSecret -}}
 {{- .Values.imageCredentials.existingSecret }}
 {{- else if .Values.imageCredentials.token -}}
-{{- printf "%s-ghcr" (include "dg-platform-agent.fullname" .) }}
+{{- printf "%s-pull-secret" (include "dg-platform-agent.fullname" .) }}
 {{- else -}}
 {{- "" }}
 {{- end }}
 {{- end }}
 
 {{/*
-imagePullSecrets list — includes GHCR secret if configured.
+imagePullSecrets list — includes private registry pull secret if configured.
 */}}
 {{- define "dg-platform-agent.imagePullSecrets" -}}
-{{- $ghcrName := include "dg-platform-agent.ghcrSecretName" . -}}
-{{- if $ghcrName }}
+{{- $pullSecretName := include "dg-platform-agent.imagePullSecretName" . -}}
+{{- if $pullSecretName }}
 imagePullSecrets:
-  - name: {{ $ghcrName }}
+  - name: {{ $pullSecretName }}
 {{- end }}
 {{- end }}
 
@@ -145,5 +145,25 @@ Priority: agentPod.existingSecret > chart-created secret
 {{- .Values.agentPod.existingSecret }}
 {{- else -}}
 {{- printf "%s-agent-pod" (include "dg-platform-agent.fullname" .) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Agent pod ServiceAccount name — separate from the controller ServiceAccount.
+*/}}
+{{- define "dg-platform-agent.agentPodServiceAccountName" -}}
+{{- if .Values.agentPod.serviceAccount.create -}}
+{{- default (printf "%s-agent-pod" (include "dg-platform-agent.fullname" .)) .Values.agentPod.serviceAccount.name }}
+{{- else -}}
+{{- required "agentPod.serviceAccount.name is required when agentPod.serviceAccount.create=false" .Values.agentPod.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+GitHub App auth is configured only when all required fields are present.
+*/}}
+{{- define "dg-platform-agent.githubAppConfigured" -}}
+{{- if and .Values.vcs.githubApp.id .Values.vcs.githubApp.installationId .Values.vcs.githubApp.privateKey -}}
+true
 {{- end }}
 {{- end }}

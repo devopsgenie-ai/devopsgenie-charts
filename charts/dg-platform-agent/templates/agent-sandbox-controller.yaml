@@ -42,6 +42,10 @@ spec:
     metadata:
       labels:
         app: agent-sandbox-controller
+        app.kubernetes.io/name: agent-sandbox-controller
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: sandbox-controller
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
     spec:
       serviceAccountName: agent-sandbox-controller
       containers:
@@ -57,4 +61,34 @@ spec:
             - name: healthz
               containerPort: 8081
               protocol: TCP
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+            seccompProfile:
+              type: RuntimeDefault
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
 {{- end }}

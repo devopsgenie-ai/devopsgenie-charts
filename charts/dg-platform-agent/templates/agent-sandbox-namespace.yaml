@@ -3,6 +3,10 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: agent-sandbox-system
+  annotations:
+    # Keep this Namespace on helm uninstall — it is a singleton shared across
+    # releases. Deleting it while other installs reference it would break them.
+    helm.sh/resource-policy: keep
   labels:
     {{- include "dg-platform-agent.labels" . | nindent 4 }}
 {{- end }}

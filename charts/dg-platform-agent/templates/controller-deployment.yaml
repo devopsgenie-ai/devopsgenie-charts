@@ -1,3 +1,4 @@
+{{- $githubAppConfigured := eq (include "dg-platform-agent.githubAppConfigured" .) "true" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,6 +16,8 @@ spec:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/credentials: {{ include (print $.Template.BasePath "/credentials-secret.yaml") . | sha256sum }}
+        checksum/agentpod-secret: {{ include (print $.Template.BasePath "/agentpod-secret.yaml") . | sha256sum }}
       labels:
         {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 8 }}
         dg-role: controller
@@ -66,6 +69,17 @@ spec:
               value: {{ .Values.sandbox.sessionIdleTtlSeconds | quote }}
             - name: HEALTH_PORT
               value: "8080"
+            # ── Capability flags ─────────────────────────────────────────
+            # Derived from VCS configuration so the controller can report
+            # its enabled capabilities to the platform on connect.
+            - name: DG_CAPABILITY_TERRAFORM_CODEGEN
+              value: {{ if and (or .Values.vcs.token $githubAppConfigured) .Values.vcs.infrastructureRepoUrl }}"true"{{ else }}"false"{{ end }}
+            - name: DG_CAPABILITY_K8S_DEPLOYMENT
+              value: {{ if and (or .Values.vcs.token $githubAppConfigured) .Values.vcs.deploymentRepoUrl }}"true"{{ else }}"false"{{ end }}
+            - name: DG_CAPABILITY_CICD_PIPELINE
+              value: {{ if or .Values.vcs.token $githubAppConfigured }}"true"{{ else }}"false"{{ end }}
+            - name: DG_CAPABILITY_COST_OPTIMIZATION
+              value: "true"
             {{- range $k, $v := .Values.controller.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}

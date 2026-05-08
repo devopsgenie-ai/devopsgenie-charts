@@ -4,10 +4,6 @@
   "description": "Values for dg-platform-agent Helm chart",
   "type": "object",
   "properties": {
-    "agentId": {
-      "type": "string",
-      "description": "DevOps Genie agent identifier (provided by DG platform)"
-    },
     "apiKey": {
       "type": "string",
       "description": "DevOps Genie API key (provided by DG platform)"
@@ -15,13 +11,17 @@
     "imageCredentials": {
       "type": "object",
       "properties": {
+        "registry": {
+          "type": "string",
+          "default": "registry.devopsgenie.ai"
+        },
         "token": {
           "type": "string",
-          "description": "GitHub PAT with read:packages scope for pulling private images"
+          "description": "Private registry token for pulling DevOps Genie agent images"
         },
         "username": {
           "type": "string",
-          "default": "devopsgenie-ai"
+          "default": ""
         },
         "existingSecret": {
           "type": "string",
@@ -54,11 +54,14 @@
       "properties": {
         "replicaCount": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "maximum": 1,
+          "default": 1,
+          "description": "Number of controller replicas. Currently capped at 1 — leader election is not yet implemented."
         },
         "env": {
           "type": "object",
-          "description": "Additional non-sensitive env vars for agent pods. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
+          "description": "Additional non-sensitive env vars for the controller pod. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
           "propertyNames": {
             "not": {
               "enum": [
@@ -103,23 +106,114 @@
         },
         "env": {
           "type": "object",
+          "description": "Additional non-sensitive env vars for agent pods. AGENT_LLM_TIMEOUT_SECONDS and AGENT_LLM_MAX_RETRIES are reserved; use agentPod.llm instead.",
+          "propertyNames": {
+            "not": {
+              "enum": [
+                "AGENT_LLM_TIMEOUT_SECONDS",
+                "AGENT_LLM_MAX_RETRIES"
+              ]
+            }
+          },
           "additionalProperties": {
             "type": "string"
+          }
+        },
+        "workspaceSize": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\.[0-9]+)?(Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$",
+          "description": "Workspace volume size (Kubernetes quantity, e.g. \"10Gi\", \"500Mi\")."
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean",
+              "default": true
+            },
+            "name": {
+              "type": "string"
+            },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
           }
         }
       }
     },
-    "warmPool": {
+    "vcs": {
       "type": "object",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
+        "provider": {
+          "type": "string",
+          "enum": ["github", "gitlab", "bitbucket"],
+          "description": "VCS provider for the agent's git operations."
         },
-        "replicas": {
+        "token": { "type": "string" },
+        "infrastructureRepoUrl": { "type": "string" },
+        "infrastructureRepoPath": { "type": "string" },
+        "deploymentRepoUrl": { "type": "string" },
+        "deploymentRepoPath": { "type": "string" },
+        "githubApp": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "installationId": { "type": "string" },
+            "privateKey": { "type": "string" }
+          }
+        }
+      }
+    },
+    "sandbox": {
+      "type": "object",
+      "properties": {
+        "sessionIdleTtlSeconds": {
           "type": "integer",
-          "minimum": 0,
-          "default": 2
+          "minimum": 1
+        },
+        "networkPolicy": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            },
+            "allowedPrivateCidrs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
+              }
+            },
+            "publicEgressPorts": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "extraEgress": {
+              "type": "array",
+              "description": "Additional NetworkPolicy egress rules. These are passed through verbatim and can widen egress if misconfigured.",
+              "items": {
+                "type": "object",
+                "required": ["to", "ports"],
+                "properties": {
+                  "to": {
+                    "type": "array"
+                  },
+                  "ports": {
+                    "type": "array",
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -128,7 +222,7 @@
       "properties": {
         "existingSecret": {
           "type": "string",
-          "description": "Name of a pre-created Secret containing DG_AGENT_ID and DG_API_KEY"
+          "description": "Name of a pre-created Secret containing DG_API_KEY"
         },
         "externalSecret": {
           "type": "object",
@@ -199,9 +293,8 @@
         }
       },
       "then": {
-        "required": ["agentId", "apiKey"],
+        "required": ["apiKey"],
         "properties": {
-          "agentId": { "minLength": 1 },
           "apiKey": { "minLength": 1 }
         }
       }
@@ -237,6 +330,169 @@
                       "kind": { "minLength": 1 }
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "not": {
+          "anyOf": [
+            {
+              "required": ["imageCredentials"],
+              "properties": {
+                "imageCredentials": {
+                  "required": ["token"],
+                  "properties": {
+                    "token": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            },
+            {
+              "required": ["imageCredentials"],
+              "properties": {
+                "imageCredentials": {
+                  "required": ["existingSecret"],
+                  "properties": {
+                    "existingSecret": { "type": "string", "minLength": 1 }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "then": {
+        "description": "Either imageCredentials.token or imageCredentials.existingSecret must be set.",
+        "required": ["imageCredentials"],
+        "properties": {
+          "imageCredentials": {
+            "anyOf": [
+              {
+                "required": ["token"],
+                "properties": {
+                  "token": { "minLength": 1 }
+                }
+              },
+              {
+                "required": ["existingSecret"],
+                "properties": {
+                  "existingSecret": { "minLength": 1 }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["imageCredentials"],
+        "properties": {
+          "imageCredentials": {
+            "required": ["token"],
+            "properties": {
+              "token": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "imageCredentials": {
+            "required": ["username"],
+            "properties": {
+              "username": { "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "vcs": {
+            "anyOf": [
+              {
+                "required": ["infrastructureRepoUrl"],
+                "properties": { "infrastructureRepoUrl": { "minLength": 1 } }
+              },
+              {
+                "required": ["deploymentRepoUrl"],
+                "properties": { "deploymentRepoUrl": { "minLength": 1 } }
+              }
+            ]
+          }
+        }
+      },
+      "then": {
+        "description": "When vcs.infrastructureRepoUrl or vcs.deploymentRepoUrl is set, either vcs.token or vcs.githubApp.id must be provided.",
+        "properties": {
+          "vcs": {
+            "anyOf": [
+              {
+                "required": ["token"],
+                "properties": {
+                  "token": { "minLength": 1 }
+                }
+              },
+              {
+                "properties": {
+                  "githubApp": {
+                    "required": ["id", "installationId", "privateKey"],
+                    "properties": {
+                      "id": { "minLength": 1 },
+                      "installationId": { "minLength": 1 },
+                      "privateKey": { "minLength": 1 }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "vcs": {
+            "properties": {
+              "githubApp": {
+                "anyOf": [
+                  {
+                    "required": ["id"],
+                    "properties": { "id": { "minLength": 1 } }
+                  },
+                  {
+                    "required": ["installationId"],
+                    "properties": { "installationId": { "minLength": 1 } }
+                  },
+                  {
+                    "required": ["privateKey"],
+                    "properties": { "privateKey": { "minLength": 1 } }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "description": "GitHub App auth requires vcs.githubApp.id, vcs.githubApp.installationId, and vcs.githubApp.privateKey together.",
+        "properties": {
+          "vcs": {
+            "properties": {
+              "githubApp": {
+                "required": ["id", "installationId", "privateKey"],
+                "properties": {
+                  "id": { "minLength": 1 },
+                  "installationId": { "minLength": 1 },
+                  "privateKey": { "minLength": 1 }
                 }
               }
             }

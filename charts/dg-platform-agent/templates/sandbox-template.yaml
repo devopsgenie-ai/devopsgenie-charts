@@ -14,14 +14,17 @@ metadata:
 spec:
   podTemplate:
     spec:
-      {{- $ghcrName := include "dg-platform-agent.ghcrSecretName" . }}
-      {{- if $ghcrName }}
+      {{- $pullSecretName := include "dg-platform-agent.imagePullSecretName" . }}
+      {{- if $pullSecretName }}
       imagePullSecrets:
-        - name: {{ $ghcrName }}
+        - name: {{ $pullSecretName }}
       {{- end }}
+      serviceAccountName: {{ include "dg-platform-agent.agentPodServiceAccountName" . }}
+      automountServiceAccountToken: false
       containers:
         - name: agent
           image: {{ .Values.agentPod.image.repository }}:{{ .Values.agentPod.image.tag }}
+          imagePullPolicy: {{ .Values.agentPod.image.pullPolicy }}
           ports:
             - containerPort: 8080
           resources:
@@ -48,6 +51,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             capabilities:
               drop:
@@ -78,6 +82,7 @@ spec:
             port: 53
           - protocol: TCP
             port: 53
+      {{- if .Values.sandbox.networkPolicy.publicEgressPorts }}
       - to:
           - ipBlock:
               cidr: 0.0.0.0/0
@@ -85,27 +90,26 @@ spec:
                 - 10.0.0.0/8
                 - 172.16.0.0/12
                 - 192.168.0.0/16
+                - 169.254.0.0/16
         ports:
+          {{- range .Values.sandbox.networkPolicy.publicEgressPorts }}
           - protocol: TCP
-            port: 443
+            port: {{ . }}
+          {{- end }}
+      {{- end }}
+      {{- range .Values.sandbox.networkPolicy.allowedPrivateCidrs }}
       - to:
           - ipBlock:
-              cidr: 0.0.0.0/0
-              except:
-                - 10.0.0.0/8
-                - 172.16.0.0/12
-                - 192.168.0.0/16
-        ports:
-          - protocol: TCP
-            port: 22
-      - to:
-          - ipBlock:
-              cidr: 10.0.0.0/8
+              cidr: {{ . | quote }}
         ports:
           - protocol: TCP
             port: 443
           - protocol: TCP
             port: 6443
+      {{- end }}
+      {{- with .Values.sandbox.networkPolicy.extraEgress }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
   {{- else }}
   networkPolicyManagement: Unmanaged
   {{- end }}
