@@ -24,6 +24,7 @@ spec:
       containers:
         - name: agent
           image: {{ .Values.agentPod.image.repository }}:{{ .Values.agentPod.image.tag }}
+          imagePullPolicy: {{ .Values.agentPod.image.pullPolicy }}
           ports:
             - containerPort: 8080
           resources:
@@ -48,6 +49,7 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             capabilities:
               drop:

@@ -25,7 +25,10 @@ helm repo add devopsgenie https://devopsgenie-ai.github.io/devopsgenie-charts
 helm repo update
 ```
 
-For production, create Kubernetes Secrets first and reference them from the chart:
+For production, generate an install bundle in the DevOps Genie UI. The bundle
+contains a one-time agent API key plus organization-scoped registry pull
+credentials. Store both in your secret manager. The default install path creates
+Kubernetes Secrets first and references them from the chart:
 
 ```bash
 kubectl create namespace devopsgenie
@@ -40,7 +43,7 @@ kubectl create secret docker-registry devopsgenie-pull-secret \
   --docker-username=YOUR_REGISTRY_USERNAME \
   --docker-password=YOUR_REGISTRY_PASSWORD
 
-helm install dg-agent devopsgenie/dg-platform-agent \
+helm upgrade --install dg-agent devopsgenie/dg-platform-agent \
   --namespace devopsgenie --create-namespace \
   --set credentials.existingSecret=dg-platform-agent \
   --set imageCredentials.existingSecret=devopsgenie-pull-secret
@@ -59,6 +62,23 @@ helm install dg-agent devopsgenie/dg-platform-agent \
 > Direct `--set` secrets can be stored in shell history, CI logs, and Helm
 > release storage. Use existing Kubernetes Secrets or External Secrets Operator
 > for shared and production clusters.
+
+### External Secrets Operator install path
+
+Teams that already use External Secrets Operator should sync the UI-generated
+agent API key and registry dockerconfigjson into Kubernetes, then reference the
+resulting Secrets:
+
+```yaml
+credentials:
+  existingSecret: dg-platform-agent
+
+imageCredentials:
+  existingSecret: devopsgenie-pull-secret
+```
+
+The chart expects `dg-platform-agent` to contain `DG_API_KEY` and
+`devopsgenie-pull-secret` to be a `kubernetes.io/dockerconfigjson` Secret.
 
 > **For chart contributors:** The chart can also be installed from a local
 > clone with `helm install dg-agent ./charts/dg-platform-agent ...`.
@@ -83,7 +103,7 @@ kubectl apply -f "${BASE_URL}/sandboxwarmpools.extensions.agents.x-k8s.io.yaml"
 ```
 
 Use the chart release tag you are upgrading to, for example
-`dg-platform-agent-0.3.7`.
+`dg-platform-agent-0.3.8`.
 
 Then proceed with the upgrade:
 

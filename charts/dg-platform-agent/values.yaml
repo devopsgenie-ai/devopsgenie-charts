@@ -144,6 +144,8 @@ agentPod:
     repository: registry.devopsgenie.ai/devopsgenie-agent/dg-agent-pod
     # agentPod.image.tag is the agent pod image tag
     tag: "0.1.0"
+    # agentPod.image.pullPolicy is the Kubernetes image pull policy
+    pullPolicy: IfNotPresent
   # agentPod.resources for agent pod containers
   resources:
     requests:
