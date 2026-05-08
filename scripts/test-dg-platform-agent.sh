@@ -59,8 +59,8 @@ assert_contains "$inline_registry_render" 'name: dg-agent-dg-platform-agent-pull
 
 default_render="$tmpdir/default.yaml"
 render "${base_args[@]}" > "$default_render"
-assert_contains "$default_render" 'value: "wss://app.devopsgenie.ai/ws/agent"'
-assert_contains "$default_render" 'value: "https://app.devopsgenie.ai/api/v1/agents/auth"'
+assert_contains "$default_render" 'value: "wss://agent.devopsgenie.ai/ws/agent"'
+assert_contains "$default_render" 'value: "https://agent.devopsgenie.ai/api/v1/agents/auth"'
 assert_contains "$default_render" 'serviceAccountName: dg-agent-dg-platform-agent-agent-pod'
 assert_contains "$default_render" 'automountServiceAccountToken: false'
 awk '/kind: SandboxTemplate/{in_template=1} in_template && /containerPort: 8080/{getline; if ($0 ~ /protocol: TCP/) found=1} END{exit found ? 0 : 1}' "$default_render"
