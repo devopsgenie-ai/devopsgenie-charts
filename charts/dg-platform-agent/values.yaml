@@ -83,9 +83,9 @@ maxAgents: 10
 # server is the DevOps Genie platform server endpoints (override for on-prem or staging)
 server:
   # server.wsUrl is the WebSocket URL the controller connects to
-  wsUrl: "wss://app.devopsgenie.ai/ws/agent"
+  wsUrl: "wss://agent.devopsgenie.ai/ws/agent"
   # server.authUrl is the authentication endpoint
-  authUrl: "https://app.devopsgenie.ai/api/v1/agents/auth"
+  authUrl: "https://agent.devopsgenie.ai/api/v1/agents/auth"
 
 # ============================================================================
 # ADVANCED — Only change if you know what you're doing
