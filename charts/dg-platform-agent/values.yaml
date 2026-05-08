@@ -157,6 +157,10 @@ agentPod:
       cpu: "2"
   # agentPod.workspaceSize is the emptyDir size for /work
   workspaceSize: 10Gi
+  # agentPod.cacheSize is the emptyDir size for /cache. Used by the skills
+  # materializer to cache content-addressed tarballs across tasks/conversations
+  # on the same pod.
+  cacheSize: 2Gi
   # agentPod.commandTimeout is the max seconds a single command can run inside the agent
   commandTimeout: 1800
   # agentPod.llm configures LiteLLM client runtime behavior inside agent pods.

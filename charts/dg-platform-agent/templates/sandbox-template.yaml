@@ -29,6 +29,8 @@ spec:
           volumeMounts:
             - name: workspace
               mountPath: /work
+            - name: cache
+              mountPath: /cache
           envFrom:
             - secretRef:
                 name: {{ include "dg-platform-agent.agentPodSecretName" . }}
@@ -62,6 +64,9 @@ spec:
         - name: workspace
           emptyDir:
             sizeLimit: {{ .Values.agentPod.workspaceSize }}
+        - name: cache
+          emptyDir:
+            sizeLimit: {{ .Values.agentPod.cacheSize | default "2Gi" }}
   {{- if .Values.sandbox.networkPolicy.enabled }}
   networkPolicyManagement: Managed
   networkPolicy:
