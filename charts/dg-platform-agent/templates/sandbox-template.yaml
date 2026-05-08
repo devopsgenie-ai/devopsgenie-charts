@@ -27,6 +27,7 @@ spec:
           imagePullPolicy: {{ .Values.agentPod.image.pullPolicy }}
           ports:
             - containerPort: 8080
+              protocol: TCP
           resources:
             {{- toYaml .Values.agentPod.resources | nindent 12 }}
           volumeMounts:

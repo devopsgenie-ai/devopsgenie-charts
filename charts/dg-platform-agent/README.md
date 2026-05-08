@@ -103,7 +103,7 @@ kubectl apply -f "${BASE_URL}/sandboxwarmpools.extensions.agents.x-k8s.io.yaml"
 ```
 
 Use the chart release tag you are upgrading to, for example
-`dg-platform-agent-0.3.9`.
+`dg-platform-agent-0.3.10`.
 
 Then proceed with the upgrade:
 

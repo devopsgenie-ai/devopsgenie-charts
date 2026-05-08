@@ -63,6 +63,7 @@ assert_contains "$default_render" 'value: "wss://app.devopsgenie.ai/ws/agent"'
 assert_contains "$default_render" 'value: "https://app.devopsgenie.ai/api/v1/agents/auth"'
 assert_contains "$default_render" 'serviceAccountName: dg-agent-dg-platform-agent-agent-pod'
 assert_contains "$default_render" 'automountServiceAccountToken: false'
+awk '/kind: SandboxTemplate/{in_template=1} in_template && /containerPort: 8080/{getline; if ($0 ~ /protocol: TCP/) found=1} END{exit found ? 0 : 1}' "$default_render"
 assert_contains "$default_render" '169.254.0.0/16'
 grep -A1 'DG_CAPABILITY_TERRAFORM_CODEGEN' "$default_render" | grep -Fq 'value: "false"'
 grep -A1 'DG_CAPABILITY_K8S_DEPLOYMENT' "$default_render" | grep -Fq 'value: "false"'
