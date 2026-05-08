@@ -68,6 +68,12 @@ grep -A1 'DG_CAPABILITY_TERRAFORM_CODEGEN' "$default_render" | grep -Fq 'value: 
 grep -A1 'DG_CAPABILITY_K8S_DEPLOYMENT' "$default_render" | grep -Fq 'value: "false"'
 grep -A1 'DG_CAPABILITY_CICD_PIPELINE' "$default_render" | grep -Fq 'value: "false"'
 
+external_secret_no_repo_render="$tmpdir/external-secret-no-repo.yaml"
+render "${base_args[@]}" \
+  --set agentPod.existingSecret=agent-pod-vcs-secret \
+  > "$external_secret_no_repo_render"
+grep -A1 'DG_CAPABILITY_CICD_PIPELINE' "$external_secret_no_repo_render" | grep -Fq 'value: "false"'
+
 empty_public_egress_values="$tmpdir/empty-public-egress-values.yaml"
 cat > "$empty_public_egress_values" <<'YAML'
 credentials:
@@ -101,6 +107,16 @@ render "${base_args[@]}" \
   > "$k8s_root_render"
 grep -A1 'DG_CAPABILITY_K8S_DEPLOYMENT' "$k8s_root_render" | grep -Fq 'value: "true"'
 
+external_vcs_secret_render="$tmpdir/external-vcs-secret.yaml"
+render "${base_args[@]}" \
+  --set agentPod.existingSecret=agent-pod-vcs-secret \
+  --set vcs.infrastructureRepoUrl=https://github.com/acme/infra.git \
+  --set vcs.deploymentRepoUrl=https://github.com/acme/k8s.git \
+  > "$external_vcs_secret_render"
+grep -A1 'DG_CAPABILITY_TERRAFORM_CODEGEN' "$external_vcs_secret_render" | grep -Fq 'value: "true"'
+grep -A1 'DG_CAPABILITY_K8S_DEPLOYMENT' "$external_vcs_secret_render" | grep -Fq 'value: "true"'
+grep -A1 'DG_CAPABILITY_CICD_PIPELINE' "$external_vcs_secret_render" | grep -Fq 'value: "true"'
+
 eso_render="$tmpdir/eso-datafrom.yaml"
 render \
   --set credentials.externalSecret.enabled=true \
@@ -122,6 +138,14 @@ if render "${base_args[@]}" \
 fi
 assert_contains "$tmpdir/incomplete-github-app.err" 'installationId'
 assert_contains "$tmpdir/incomplete-github-app.err" 'privateKey'
+
+if render "${base_args[@]}" \
+  --set vcs.infrastructureRepoUrl=https://github.com/acme/infra.git \
+  > "$tmpdir/missing-vcs-auth.yaml" 2> "$tmpdir/missing-vcs-auth.err"; then
+  echo "Expected repo URLs without VCS credentials to fail schema validation" >&2
+  exit 1
+fi
+assert_contains "$tmpdir/missing-vcs-auth.err" 'vcs'
 
 if render --set imageCredentials.existingSecret=devopsgenie-pull-secret > "$tmpdir/missing-api-key.yaml" 2> "$tmpdir/missing-api-key.err"; then
   echo "Expected chart render without apiKey or credentials secret to fail" >&2

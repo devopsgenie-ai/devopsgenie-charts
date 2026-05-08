@@ -430,17 +430,24 @@
         }
       },
       "then": {
-        "description": "When vcs.infrastructureRepoUrl or vcs.deploymentRepoUrl is set, either vcs.token or vcs.githubApp.id must be provided.",
-        "properties": {
-          "vcs": {
-            "anyOf": [
-              {
+        "description": "When vcs.infrastructureRepoUrl or vcs.deploymentRepoUrl is set, VCS credentials must be provided via vcs.token, vcs.githubApp, or agentPod.existingSecret.",
+        "anyOf": [
+          {
+            "required": ["vcs"],
+            "properties": {
+              "vcs": {
                 "required": ["token"],
                 "properties": {
                   "token": { "minLength": 1 }
                 }
-              },
-              {
+              }
+            }
+          },
+          {
+            "required": ["vcs"],
+            "properties": {
+              "vcs": {
+                "required": ["githubApp"],
                 "properties": {
                   "githubApp": {
                     "required": ["id", "installationId", "privateKey"],
@@ -452,9 +459,20 @@
                   }
                 }
               }
-            ]
+            }
+          },
+          {
+            "required": ["agentPod"],
+            "properties": {
+              "agentPod": {
+                "required": ["existingSecret"],
+                "properties": {
+                  "existingSecret": { "minLength": 1 }
+                }
+              }
+            }
           }
-        }
+        ]
       }
     },
     {

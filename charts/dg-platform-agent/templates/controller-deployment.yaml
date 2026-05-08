@@ -1,4 +1,4 @@
-{{- $githubAppConfigured := eq (include "dg-platform-agent.githubAppConfigured" .) "true" -}}
+{{- $vcsAuthConfigured := eq (include "dg-platform-agent.vcsAuthConfigured" .) "true" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -73,11 +73,11 @@ spec:
             # Derived from VCS configuration so the controller can report
             # its enabled capabilities to the platform on connect.
             - name: DG_CAPABILITY_TERRAFORM_CODEGEN
-              value: {{ if and (or .Values.vcs.token $githubAppConfigured) .Values.vcs.infrastructureRepoUrl }}"true"{{ else }}"false"{{ end }}
+              value: {{ if and $vcsAuthConfigured .Values.vcs.infrastructureRepoUrl }}"true"{{ else }}"false"{{ end }}
             - name: DG_CAPABILITY_K8S_DEPLOYMENT
-              value: {{ if and (or .Values.vcs.token $githubAppConfigured) .Values.vcs.deploymentRepoUrl }}"true"{{ else }}"false"{{ end }}
+              value: {{ if and $vcsAuthConfigured .Values.vcs.deploymentRepoUrl }}"true"{{ else }}"false"{{ end }}
             - name: DG_CAPABILITY_CICD_PIPELINE
-              value: {{ if or .Values.vcs.token $githubAppConfigured }}"true"{{ else }}"false"{{ end }}
+              value: {{ if and $vcsAuthConfigured (or .Values.vcs.infrastructureRepoUrl .Values.vcs.deploymentRepoUrl) }}"true"{{ else }}"false"{{ end }}
             - name: DG_CAPABILITY_COST_OPTIMIZATION
               value: "true"
             {{- range $k, $v := .Values.controller.env }}

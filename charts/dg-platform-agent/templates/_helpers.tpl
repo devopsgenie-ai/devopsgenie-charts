@@ -167,3 +167,14 @@ GitHub App auth is configured only when all required fields are present.
 true
 {{- end }}
 {{- end }}
+
+{{/*
+VCS auth is configured via inline token, inline GitHub App credentials, or an
+externally managed agent pod secret containing the VCS credentials.
+*/}}
+{{- define "dg-platform-agent.vcsAuthConfigured" -}}
+{{- $githubAppConfigured := eq (include "dg-platform-agent.githubAppConfigured" .) "true" -}}
+{{- if or .Values.vcs.token $githubAppConfigured .Values.agentPod.existingSecret -}}
+true
+{{- end }}
+{{- end }}
