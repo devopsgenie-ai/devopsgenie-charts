@@ -18,6 +18,9 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/credentials: {{ include (print $.Template.BasePath "/credentials-secret.yaml") . | sha256sum }}
         checksum/agentpod-secret: {{ include (print $.Template.BasePath "/agentpod-secret.yaml") . | sha256sum }}
+        {{- with .Values.controller.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
       labels:
         {{- include "dg-platform-agent.controller.selectorLabels" . | nindent 8 }}
         dg-role: controller

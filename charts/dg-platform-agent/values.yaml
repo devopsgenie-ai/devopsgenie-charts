@@ -133,6 +133,9 @@ controller:
       memory: 512Mi
   # controller.env is additional environment variables (non-sensitive only)
   env: {}
+  # controller.podAnnotations are additional annotations added to the controller pod.
+  # Use this for observability integrations such as OTel auto-instrumentation.
+  podAnnotations: {}
   nodeSelector: {}
   tolerations: []
   affinity: {}
