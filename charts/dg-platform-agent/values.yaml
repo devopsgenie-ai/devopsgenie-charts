@@ -123,6 +123,11 @@ controller:
     pullPolicy: IfNotPresent
   # controller.replicaCount is the number of controller pod replicas
   replicaCount: 1
+  # controller.connectionMode controls how the controller reaches sandbox pods.
+  # "direct" (default): in-cluster, reaches pods directly via Kubernetes DNS.
+  # "tunnel": out-of-cluster only — requires a platform-internal sandbox-router
+  # service that is NOT shipped with this chart. Do not change unless instructed.
+  connectionMode: "direct"
   # controller.resources defines CPU/memory requests and limits
   resources:
     requests:

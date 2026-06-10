@@ -75,6 +75,20 @@ spec:
   {{- if .Values.sandbox.networkPolicy.enabled }}
   networkPolicyManagement: Managed
   networkPolicy:
+    # Allow the controller to reach agent pods on :8080 (task relay + warm-pool
+    # health checks). This MUST live in the SandboxTemplate-managed policy: the
+    # agent-sandbox controller labels pods with agents.x-k8s.io/sandbox-template-ref-hash,
+    # so a standalone NetworkPolicy selecting `sandbox-template: <name>` matches
+    # nothing and the managed policy's default deny-all-ingress blocks the
+    # controller — breaking task delivery and flapping the warm pool.
+    ingress:
+      - from:
+          - podSelector:
+              matchLabels:
+                dg-role: controller
+        ports:
+          - protocol: TCP
+            port: 8080
     egress:
       - to:
           - namespaceSelector: {}
