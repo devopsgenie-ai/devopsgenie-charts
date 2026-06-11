@@ -3,7 +3,7 @@ entries:
   devops-genie:
   - apiVersion: v2
     appVersion: 0.1.5
-    created: "2026-06-11T03:09:25.84271916Z"
+    created: "2026-06-11T05:20:59.827751717Z"
     description: devops genie ai assistant agent
     digest: e4fa12643cf604b8eb606e348d44c527338e729537e2da129c56b123624c21e1
     home: https://github.com/devopsgenie-ai/devopsgenie-charts
@@ -46,7 +46,7 @@ entries:
   devops-genie-sre-agent:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.844184485Z"
+    created: "2026-06-11T05:20:59.829240972Z"
     description: DevOps Genie SRE Agent - AI agent for cloud troubleshooting and alert
       investigation (Helm chart)
     digest: bc85adadec97bbfa3103b4dd7efbdb6a7d553b1157477944b624142ba3ecde89
@@ -95,7 +95,32 @@ entries:
   dg-platform-agent:
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.854071058Z"
+    created: "2026-06-11T05:20:59.845820179Z"
+    description: DevOps Genie agent for client clusters — deploys the DG controller,
+      agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
+      to the DevOps Genie platform.
+    digest: 824c69b440c485a0fd23fcd2956f995d0f7fbbac53d47053f3e9f178e59195d4
+    home: https://github.com/devopsgenie-ai/devopsgenie-charts
+    keywords:
+    - devops-genie
+    - platform-agent
+    - controller
+    - agent-sandbox
+    - ai
+    kubeVersion: '>=1.19.0-0'
+    maintainers:
+    - name: DevOps Genie
+      url: https://github.com/devopsgenie-ai
+    name: dg-platform-agent
+    sources:
+    - https://github.com/devopsgenie-ai/devopsgenie-charts
+    type: application
+    urls:
+    - https://devopsgenie-ai.github.io/devopsgenie-charts/dg-platform-agent-0.3.16.tgz
+    version: 0.3.16
+  - apiVersion: v2
+    appVersion: 0.1.0
+    created: "2026-06-11T05:20:59.843030531Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -120,7 +145,7 @@ entries:
     version: 0.3.15
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.852622207Z"
+    created: "2026-06-11T05:20:59.839881809Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -145,7 +170,7 @@ entries:
     version: 0.3.14
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.850959349Z"
+    created: "2026-06-11T05:20:59.83753538Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -170,7 +195,7 @@ entries:
     version: 0.3.11
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.848903151Z"
+    created: "2026-06-11T05:20:59.834417735Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -195,7 +220,7 @@ entries:
     version: 0.3.10
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.864770413Z"
+    created: "2026-06-11T05:20:59.860120894Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -220,7 +245,7 @@ entries:
     version: 0.3.9
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.862897387Z"
+    created: "2026-06-11T05:20:59.857239514Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -245,7 +270,7 @@ entries:
     version: 0.3.8
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.861522816Z"
+    created: "2026-06-11T05:20:59.855708518Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -270,7 +295,7 @@ entries:
     version: 0.3.7
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.860219111Z"
+    created: "2026-06-11T05:20:59.853280617Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -295,7 +320,7 @@ entries:
     version: 0.3.6
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.858395474Z"
+    created: "2026-06-11T05:20:59.851956008Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -320,7 +345,7 @@ entries:
     version: 0.3.5
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.857119569Z"
+    created: "2026-06-11T05:20:59.850631038Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -345,7 +370,7 @@ entries:
     version: 0.3.3
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.855827481Z"
+    created: "2026-06-11T05:20:59.847990396Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -370,7 +395,7 @@ entries:
     version: 0.3.2
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.847483283Z"
+    created: "2026-06-11T05:20:59.832945706Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -395,7 +420,7 @@ entries:
     version: 0.3.1
   - apiVersion: v2
     appVersion: 0.1.0
-    created: "2026-06-11T03:09:25.845529111Z"
+    created: "2026-06-11T05:20:59.830494435Z"
     description: DevOps Genie agent for client clusters — deploys the DG controller,
       agent-sandbox CRDs + controller, and SandboxTemplate. Single helm install auto-connects
       to the DevOps Genie platform.
@@ -418,4 +443,4 @@ entries:
     urls:
     - https://devopsgenie-ai.github.io/devopsgenie-charts/dg-platform-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-06-11T03:09:25.841919563Z"
+generated: "2026-06-11T05:20:59.826897737Z"
