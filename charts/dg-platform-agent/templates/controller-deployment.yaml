@@ -1,4 +1,7 @@
 {{- $vcsAuthConfigured := eq (include "dg-platform-agent.vcsAuthConfigured" .) "true" -}}
+{{- if and (not .Values.apiKey) (not .Values.credentials.existingSecret) (not .Values.credentials.externalSecret.enabled) }}
+{{- fail "\n\nNo agent credentials configured. Set ONE of:\n  --set apiKey=dk_xxxxx\n  --set credentials.existingSecret=<secret-name>\n  --set credentials.externalSecret.enabled=true (with secretStoreRef + data/dataFrom)\nThe controller cannot authenticate to the DevOps Genie platform without credentials." }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,6 +29,9 @@ spec:
         dg-role: controller
     spec:
       {{- include "dg-platform-agent.imagePullSecrets" . | nindent 6 }}
+      {{- with .Values.controller.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
       serviceAccountName: {{ include "dg-platform-agent.serviceAccountName" . }}
       securityContext:
         runAsNonRoot: true
@@ -77,6 +83,16 @@ spec:
               value: {{ .Values.sandbox.sessionIdleTtlSeconds | quote }}
             - name: HEALTH_PORT
               value: "8080"
+            # ── Warm pool ────────────────────────────────────────────────
+            # Pre-claimed pods kept ready for near-instant assignment.
+            - name: WARM_POOL_SIZE
+              value: {{ .Values.controller.warmPool.size | quote }}
+            - name: WARM_POOL_MAX_AGE_SECONDS
+              value: {{ .Values.controller.warmPool.maxAgeSeconds | quote }}
+            - name: WARM_POOL_REPLENISH_INTERVAL
+              value: {{ .Values.controller.warmPool.replenishIntervalSeconds | quote }}
+            - name: WARM_POOL_HEALTH_INTERVAL
+              value: {{ .Values.controller.warmPool.healthIntervalSeconds | quote }}
             # ── Capability flags ─────────────────────────────────────────
             # Derived from VCS configuration so the controller can report
             # its enabled capabilities to the platform on connect.
@@ -88,8 +104,9 @@ spec:
               value: {{ if and $vcsAuthConfigured (or .Values.vcs.infrastructureRepoUrl .Values.vcs.deploymentRepoUrl) }}"true"{{ else }}"false"{{ end }}
             - name: DG_CAPABILITY_COST_OPTIMIZATION
               value: "true"
+            {{- $reserved := list "SANDBOX_CONNECTION_MODE" "WARM_POOL_SIZE" "WARM_POOL_MAX_AGE_SECONDS" "WARM_POOL_REPLENISH_INTERVAL" "WARM_POOL_HEALTH_INTERVAL" }}
             {{- range $k, $v := .Values.controller.env }}
-            {{- if ne $k "SANDBOX_CONNECTION_MODE" }}
+            {{- if not (has $k $reserved) }}
             - name: {{ $k }}
               value: {{ $v | quote }}
             {{- end }}

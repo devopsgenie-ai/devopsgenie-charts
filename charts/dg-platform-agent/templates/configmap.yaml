@@ -5,5 +5,5 @@ metadata:
   labels:
     {{- include "dg-platform-agent.labels" . | nindent 4 }}
 data:
-  AGENT_POD_IMAGE: {{ .Values.agentPod.image.repository | quote }}
-  AGENT_POD_TAG: {{ .Values.agentPod.image.tag | quote }}
+  AGENT_POD_IMAGE: {{ include "dg-platform-agent.agentPod.imageRepository" . | quote }}
+  AGENT_POD_TAG: {{ include "dg-platform-agent.agentPod.imageTag" . | quote }}

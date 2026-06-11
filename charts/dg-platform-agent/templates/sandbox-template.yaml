@@ -23,7 +23,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: agent
-          image: {{ .Values.agentPod.image.repository }}:{{ .Values.agentPod.image.tag }}
+          image: {{ include "dg-platform-agent.agentPod.image" . }}
           imagePullPolicy: {{ .Values.agentPod.image.pullPolicy }}
           ports:
             - containerPort: 8080
@@ -57,8 +57,15 @@ spec:
             capabilities:
               drop:
                 - ALL
+      {{- with .Values.agentPod.priorityClassName }}
+      priorityClassName: {{ . | quote }}
+      {{- end }}
       {{- with .Values.agentPod.nodeSelector }}
       nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agentPod.affinity }}
+      affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.agentPod.tolerations }}
@@ -67,8 +74,27 @@ spec:
       {{- end }}
       volumes:
         - name: workspace
+          {{- if eq (.Values.agentPod.storage.type | default "emptyDir") "ephemeral" }}
+          # Generic ephemeral volume: a per-pod PVC provisioned from the chosen
+          # StorageClass and deleted together with the pod (no orphaned PVCs).
+          ephemeral:
+            volumeClaimTemplate:
+              metadata:
+                labels:
+                  {{- include "dg-platform-agent.labels" . | nindent 18 }}
+              spec:
+                accessModes:
+                  {{- toYaml (.Values.agentPod.storage.accessModes | default (list "ReadWriteOnce")) | nindent 18 }}
+                {{- if .Values.agentPod.storage.storageClassName }}
+                storageClassName: {{ .Values.agentPod.storage.storageClassName | quote }}
+                {{- end }}
+                resources:
+                  requests:
+                    storage: {{ .Values.agentPod.workspaceSize }}
+          {{- else }}
           emptyDir:
             sizeLimit: {{ .Values.agentPod.workspaceSize }}
+          {{- end }}
         - name: cache
           emptyDir:
             sizeLimit: {{ .Values.agentPod.cacheSize | default "2Gi" }}
@@ -90,8 +116,20 @@ spec:
           - protocol: TCP
             port: 8080
     egress:
+      # DNS. namespaceSelector covers clusters where agent pods reach kube-dns
+      # pods directly. dnsEgressCidrs additionally allows the DNS server by IP,
+      # which is REQUIRED on GKE clusters running NodeLocal DNSCache: there,
+      # queries to the kube-dns ClusterIP are intercepted by a per-node cache
+      # served from the node host (link-local 169.254.20.10), so the
+      # podSelector path never matches and ALL DNS resolution from agent pods
+      # fails. Default 0.0.0.0/0 (port 53 only) keeps resolution working on
+      # every DNS topology; tighten via sandbox.networkPolicy.dnsEgressCidrs.
       - to:
           - namespaceSelector: {}
+          {{- range .Values.sandbox.networkPolicy.dnsEgressCidrs }}
+          - ipBlock:
+              cidr: {{ . | quote }}
+          {{- end }}
         ports:
           - protocol: UDP
             port: 53

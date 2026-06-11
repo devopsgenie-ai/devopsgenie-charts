@@ -76,11 +76,65 @@ ServiceAccount name — resolves to custom name, generated name, or "default"
 {{- end }}
 
 {{/*
-Controller image
+Apply an optional global.imageRegistry override to a full image repository.
+When global.imageRegistry is set, the registry host (first path segment) is
+replaced with the override while the repository path is preserved — this lets
+air-gapped/mirrored installs repoint all images without editing each repository.
+When unset, the repository is returned unchanged.
+*/}}
+{{- define "dg-platform-agent.imageRepository" -}}
+{{- $repo := .repo -}}
+{{- $registry := .registry -}}
+{{- if $registry -}}
+{{- $segments := splitList "/" $repo -}}
+{{- if gt (len $segments) 1 -}}
+{{- printf "%s/%s" $registry (rest $segments | join "/") -}}
+{{- else -}}
+{{- printf "%s/%s" $registry $repo -}}
+{{- end -}}
+{{- else -}}
+{{- $repo -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Controller image — tag defaults to chart appVersion; honors global.imageRegistry.
 */}}
 {{- define "dg-platform-agent.controller.image" -}}
 {{- $tag := .Values.controller.image.tag | default .Chart.AppVersion }}
-{{- printf "%s:%s" .Values.controller.image.repository $tag }}
+{{- $repo := include "dg-platform-agent.imageRepository" (dict "repo" .Values.controller.image.repository "registry" .Values.global.imageRegistry) }}
+{{- printf "%s:%s" $repo $tag }}
+{{- end }}
+
+{{/*
+Agent pod image — tag defaults to chart appVersion; honors global.imageRegistry.
+*/}}
+{{- define "dg-platform-agent.agentPod.image" -}}
+{{- $tag := .Values.agentPod.image.tag | default .Chart.AppVersion }}
+{{- $repo := include "dg-platform-agent.imageRepository" (dict "repo" .Values.agentPod.image.repository "registry" .Values.global.imageRegistry) }}
+{{- printf "%s:%s" $repo $tag }}
+{{- end }}
+
+{{/*
+Agent pod image repository (without tag) — honors global.imageRegistry.
+*/}}
+{{- define "dg-platform-agent.agentPod.imageRepository" -}}
+{{- include "dg-platform-agent.imageRepository" (dict "repo" .Values.agentPod.image.repository "registry" .Values.global.imageRegistry) }}
+{{- end }}
+
+{{/*
+Agent pod image tag — defaults to chart appVersion.
+*/}}
+{{- define "dg-platform-agent.agentPod.imageTag" -}}
+{{- .Values.agentPod.image.tag | default .Chart.AppVersion }}
+{{- end }}
+
+{{/*
+Agent-sandbox controller image — honors global.imageRegistry.
+*/}}
+{{- define "dg-platform-agent.agentSandbox.image" -}}
+{{- $repo := include "dg-platform-agent.imageRepository" (dict "repo" .Values.agentSandbox.image.repository "registry" .Values.global.imageRegistry) }}
+{{- printf "%s:%s" $repo .Values.agentSandbox.image.tag }}
 {{- end }}
 
 {{/*
