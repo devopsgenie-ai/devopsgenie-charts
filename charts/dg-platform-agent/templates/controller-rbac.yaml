@@ -16,10 +16,12 @@ rules:
     resources: [pods]
     verbs: [get, list, watch]
   # Services + port-forward: required by the k8s-agent-sandbox SDK tunnel
-  # (controller reaches sandbox pods via sandbox-router-svc).
+  # (controller reaches sandbox pods via sandbox-router-svc). `watch` is needed
+  # by the SDK's Service informer — without it the tunnel crashes with
+  # `cannot watch resource "services"` and customers have to patch RBAC.
   - apiGroups: [""]
     resources: [services, services/proxy]
-    verbs: [get, list, create]
+    verbs: [get, list, watch, create]
   - apiGroups: [""]
     resources: [pods/portforward]
     verbs: [create]
