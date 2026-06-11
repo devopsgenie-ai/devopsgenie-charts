@@ -122,11 +122,17 @@ required migrations.
 |-----|-------------|---------|
 | `nameOverride` | Override chart name | `""` |
 | `fullnameOverride` | Override generated resource names | `""` |
+| `global.imageRegistry` | Override the registry host of all chart images (air-gapped/mirrored installs) | `""` |
 | **Controller** | | |
 | `controller.image.repository` | Controller image | `registry.devopsgenie.ai/devopsgenie-agent/dg-controller` |
 | `controller.image.tag` | Image tag (defaults to `appVersion`) | `""` |
 | `controller.image.pullPolicy` | Pull policy | `IfNotPresent` |
 | `controller.replicaCount` | Replicas | `1` |
+| `controller.priorityClassName` | PriorityClass for the controller pod | `""` |
+| `controller.warmPool.size` | Spare pre-claimed pods kept ready (0 disables) | `2` |
+| `controller.warmPool.maxAgeSeconds` | Rotate a warm pod after this age | `600` |
+| `controller.warmPool.replenishIntervalSeconds` | How often the pool refills | `10` |
+| `controller.warmPool.healthIntervalSeconds` | How often pooled pods are health-checked | `30` |
 | `controller.env` | Extra env vars (non-sensitive) | `{}` |
 | `controller.resources` | CPU/memory | `100m/128Mi` req, `500m/512Mi` limit |
 | **Server** | | |
@@ -134,10 +140,16 @@ required migrations.
 | `server.authUrl` | Platform auth URL | `https://app.devopsgenie.ai/api/v1/agents/auth` |
 | **Agent Pod** | | |
 | `agentPod.image.repository` | Agent pod image | `registry.devopsgenie.ai/devopsgenie-agent/dg-agent-pod` |
-| `agentPod.image.tag` | Agent pod tag | `0.1.0` |
+| `agentPod.image.tag` | Agent pod tag (defaults to `appVersion`) | `""` |
+| `agentPod.priorityClassName` | PriorityClass for spawned agent pods | `""` |
+| `agentPod.affinity` | Pod affinity/anti-affinity for agent pods | `{}` |
 | `agentPod.existingSecret` | Pre-created Secret for agent pod runtime/VCS env | `""` |
 | `agentPod.resources` | Agent pod resources | `1cpu/2Gi` req, `2cpu/4Gi` limit |
-| `agentPod.workspaceSize` | Agent workspace volume | `10Gi` |
+| `agentPod.workspaceSize` | Agent workspace volume size (emptyDir sizeLimit, or PVC request size when `storage.type=ephemeral`) | `10Gi` |
+| `agentPod.cacheSize` | Skills cache volume size (emptyDir) | `2Gi` |
+| `agentPod.storage.type` | `/work` backend: `emptyDir` (node storage) or `ephemeral` (per-pod PVC) | `emptyDir` |
+| `agentPod.storage.storageClassName` | StorageClass for `storage.type=ephemeral` (empty = cluster default) | `""` |
+| `agentPod.storage.accessModes` | PVC access modes for `storage.type=ephemeral` | `["ReadWriteOnce"]` |
 | `agentPod.commandTimeout` | Max seconds a command may run | `1800` |
 | `agentPod.llm.timeoutSeconds` | LiteLLM client request timeout | `300` |
 | `agentPod.llm.maxRetries` | LiteLLM client retry count | `2` |
@@ -151,6 +163,7 @@ required migrations.
 | `maxAgents` | Max concurrent agent pods | `10` |
 | `sandbox.sessionIdleTtlSeconds` | Idle cleanup timeout | `900` |
 | `sandbox.networkPolicy.enabled` | Agent pod NetworkPolicy | `true` |
+| `sandbox.networkPolicy.dnsEgressCidrs` | CIDRs allowed for DNS (port 53) egress, in addition to in-cluster kube-dns. Required on GKE NodeLocal DNSCache clusters. | `["0.0.0.0/0"]` |
 | `sandbox.networkPolicy.allowedPrivateCidrs` | Private CIDRs allowed for HTTPS/Kubernetes API egress | `["10.0.0.0/8"]` |
 | `sandbox.networkPolicy.publicEgressPorts` | Public TCP egress ports | `[443, 22]` |
 | `sandbox.networkPolicy.extraEgress` | Additional NetworkPolicy egress rules | `[]` |

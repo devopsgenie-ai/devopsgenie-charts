@@ -50,7 +50,7 @@ spec:
       serviceAccountName: agent-sandbox-controller
       containers:
         - name: agent-sandbox-controller
-          image: {{ .Values.agentSandbox.image.repository }}:{{ .Values.agentSandbox.image.tag }}
+          image: {{ include "dg-platform-agent.agentSandbox.image" . }}
           args:
             - "--leader-elect=true"
             - "--extensions"

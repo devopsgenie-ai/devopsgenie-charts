@@ -18,6 +18,16 @@
 # (see ADVANCED section below).
 # ============================================================================
 
+# global holds settings shared across all images in this chart.
+global:
+  # global.imageRegistry, when set, replaces the registry host of EVERY image
+  # (controller, agent pod, agent-sandbox controller) while preserving the
+  # repository path. Use this for air-gapped or mirrored installs, e.g.
+  # "harbor.internal.example.com" turns
+  # "registry.devopsgenie.ai/devopsgenie-agent/dg-controller" into
+  # "harbor.internal.example.com/devopsgenie-agent/dg-controller".
+  imageRegistry: ""
+
 # apiKey is your DevOps Genie API key (provided by DG platform)
 # Pass via: --set apiKey=dk_xxxxx
 apiKey: ""
@@ -123,6 +133,21 @@ controller:
     pullPolicy: IfNotPresent
   # controller.replicaCount is the number of controller pod replicas
   replicaCount: 1
+  # controller.priorityClassName assigns a PriorityClass to the controller pod
+  # so it survives node-pressure eviction ahead of best-effort workloads.
+  priorityClassName: ""
+  # controller.warmPool tunes the pre-warmed agent pod pool. Warm pods are
+  # pre-claimed so conversations get a pod in <100ms instead of waiting 30-120s
+  # for on-demand creation. Pods are health-checked and rotated by age.
+  warmPool:
+    # controller.warmPool.size is the number of spare pods kept ready (0 disables).
+    size: 2
+    # controller.warmPool.maxAgeSeconds rotates a warm pod after this age.
+    maxAgeSeconds: 600
+    # controller.warmPool.replenishIntervalSeconds is how often the pool refills.
+    replenishIntervalSeconds: 10
+    # controller.warmPool.healthIntervalSeconds is how often pooled pods are health-checked.
+    healthIntervalSeconds: 30
   # controller.connectionMode controls how the controller reaches sandbox pods.
   # "direct" (default): in-cluster, reaches pods directly via Kubernetes DNS.
   # "tunnel": out-of-cluster only — requires a platform-internal sandbox-router
@@ -150,8 +175,9 @@ agentPod:
   image:
     # agentPod.image.repository is the agent pod container image
     repository: registry.devopsgenie.ai/devopsgenie-agent/dg-agent-pod
-    # agentPod.image.tag is the agent pod image tag
-    tag: "0.1.0"
+    # agentPod.image.tag overrides the agent pod image tag.
+    # Leave empty to track the chart appVersion (same behavior as the controller).
+    tag: ""
     # agentPod.image.pullPolicy is the Kubernetes image pull policy
     pullPolicy: IfNotPresent
   # agentPod.resources for agent pod containers
@@ -162,12 +188,31 @@ agentPod:
     limits:
       memory: "4Gi"
       cpu: "2"
-  # agentPod.workspaceSize is the emptyDir size for /work
+  # agentPod.workspaceSize is the size of the /work volume. For the default
+  # emptyDir backend this is the node-ephemeral-storage sizeLimit; for the
+  # "ephemeral" storage backend (see agentPod.storage) it is the requested PVC size.
   workspaceSize: 10Gi
-  # agentPod.cacheSize is the emptyDir size for /cache. Used by the skills
+  # agentPod.cacheSize is the size of the /cache volume. Used by the skills
   # materializer to cache content-addressed tarballs across tasks/conversations
-  # on the same pod.
+  # on the same pod. Always backed by emptyDir (node-local for speed).
   cacheSize: 2Gi
+  # agentPod.storage controls how the /work (workspace) volume is backed.
+  # Default "emptyDir" uses node ephemeral storage — fast, zero-provisioning,
+  # and correct for short-lived sandboxes. Switch to "ephemeral" to back /work
+  # with a dynamically-provisioned, per-pod PVC (a Kubernetes generic ephemeral
+  # volume) when you need a specific StorageClass, a dedicated/encrypted disk,
+  # or more space than the node's ephemeral storage provides. The PVC is created
+  # and DELETED with the pod (owned by it) — no orphans, safe with warm-pool
+  # rotation. Note: provisioning a real disk adds startup latency to each pod.
+  storage:
+    # agentPod.storage.type is "emptyDir" (default) or "ephemeral".
+    type: emptyDir
+    # agentPod.storage.storageClassName selects the StorageClass for type=ephemeral.
+    # Empty string uses the cluster's default StorageClass.
+    storageClassName: ""
+    # agentPod.storage.accessModes are the PVC access modes for type=ephemeral.
+    accessModes:
+      - ReadWriteOnce
   # agentPod.commandTimeout is the max seconds a single command can run inside the agent
   commandTimeout: 1800
   # agentPod.llm configures LiteLLM client runtime behavior inside agent pods.
@@ -193,7 +238,11 @@ agentPod:
     name: ""
     # agentPod.serviceAccount.annotations adds annotations to the dedicated ServiceAccount
     annotations: {}
+  # agentPod.priorityClassName assigns a PriorityClass to spawned agent pods.
+  priorityClassName: ""
   nodeSelector: {}
+  # agentPod.affinity sets pod affinity/anti-affinity rules for agent pods.
+  affinity: {}
   tolerations: []
 
 # sandbox configures advanced sandbox behavior
@@ -204,6 +253,17 @@ sandbox:
   networkPolicy:
     # sandbox.networkPolicy.enabled creates egress restrictions on agent pods
     enabled: true
+    # sandbox.networkPolicy.dnsEgressCidrs allows DNS (port 53) egress to these CIDRs,
+    # in addition to in-cluster kube-dns pods. This is REQUIRED on GKE clusters with
+    # NodeLocal DNSCache enabled: there, queries to the kube-dns ClusterIP are
+    # intercepted by a per-node cache served from the node host (link-local
+    # 169.254.20.10), which the pod-selector DNS rule cannot match — so ALL DNS
+    # resolution from agent pods fails (e.g. "Could not resolve host: github.com").
+    # Default 0.0.0.0/0 keeps resolution working on any DNS topology and is low-risk
+    # (port 53 only). To tighten, set this to your kube-dns ClusterIP plus
+    # 169.254.20.10/32, e.g. ["10.96.0.10/32", "169.254.20.10/32"].
+    dnsEgressCidrs:
+      - 0.0.0.0/0
     # sandbox.networkPolicy.allowedPrivateCidrs allows HTTPS/Kubernetes API access to private endpoints
     allowedPrivateCidrs:
       - 10.0.0.0/8
